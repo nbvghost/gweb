@@ -3,7 +3,7 @@ package gweb
 import (
 	"errors"
 
-	"server.local/gweb/tool"
+	"github.com/nbvghost/gweb/tool"
 )
 
 type Interceptors struct {

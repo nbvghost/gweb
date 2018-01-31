@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"server.local/gweb/conf"
-	"server.local/gweb/tool"
+	"github.com/nbvghost/gweb/tool"
+	"github.com/nbvghost/gweb/conf"
 )
 
 func init() {

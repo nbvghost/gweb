@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"server.local/gweb/conf"
+	"github.com/nbvghost/gweb/conf"
 )
 
 func FuncMap() template.FuncMap {

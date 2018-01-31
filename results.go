@@ -11,8 +11,8 @@ import (
 
 	"time"
 
-	"server.local/gweb/conf"
-	"server.local/gweb/tool"
+	"github.com/nbvghost/gweb/conf"
+	"github.com/nbvghost/gweb/tool"
 )
 
 type Result interface {
