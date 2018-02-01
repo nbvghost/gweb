@@ -20,7 +20,7 @@ go get github.com/nbvghost/gweb
   - ViewDir：视图文件夹名
   - ResourcesDir：资源文件夹名
   - DefaultPage：默认文件名
-  - JsonDataPath：json 数据文件，这个文件在所以有视图文件中可以读取到，可用于程序业务配制信息一块。
+  - JsonDataPath：json 数据文件，这个文件在所有视图文件中可以读取到，可用于程序业务配制信息一块。
   - HttpPort:http 端口
   - HttpsPort:htpps 端口
   - ViewSuffix：视图文件后缀
