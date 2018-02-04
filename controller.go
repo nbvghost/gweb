@@ -101,16 +101,25 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	isubc.Apply()
 	http.Handle(path,isubc)
 }
-func (c *BaseController) AddHandler(pattern string, function *Function) {
+///func(context *Context) Result
+func (c *BaseController) AddHandler(pattern string, call func(context *Context) Result) {
 	c.Lock()
 	defer c.Unlock()
 	if c.RequestMapping == nil {
 		c.RequestMapping = make(map[string]*Function)
 	}
 	_pattern := c.Root +"/"+ pattern
-	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
-	//fmt.Println(c.RequestMapping)
+	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = &Function{Function: call}
 }
+//func (c *BaseController) AddHandler(pattern string, function *Function) {
+//	c.Lock()
+//	defer c.Unlock()
+//	if c.RequestMapping == nil {
+//		c.RequestMapping = make(map[string]*Function)
+//	}
+//	_pattern := c.Root +"/"+ pattern
+//	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
+//}
 func (c *BaseController) doAction(path string, context *Context) Result {
 
 	var f *Function
