@@ -25,14 +25,16 @@ func (inter *Interceptors) Add(value Interceptor) {
 		tool.CheckError(errors.New("已经存在"))
 	}
 }
-func (inter *Interceptors) ExecuteAll(context *Context) bool {
+func (inter *Interceptors) ExecuteAll(c *BaseController) bool {
 	for _, value := range inter.list {
 
-		bo := value.Execute(context)
+
+		//fmt.Println(c.Context.Request.URL.Path)
+		//fmt.Println(c.Root)
+		bo := value.Execute(c.Context)
 		if bo == false {
 			return false
 		}
-
 		/*ikey := strings.Split(key, "*")[0]
 		if strings.Contains(path, ikey) {
 			return true, value

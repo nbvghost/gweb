@@ -12,6 +12,7 @@ import (
 	"reflect"
 
 	"github.com/nbvghost/gweb/tool"
+
 )
 
 type Context struct {
@@ -40,7 +41,7 @@ type BaseSubController struct {
 type BaseController struct {
 	sync.RWMutex
 	RequestMapping map[string]*Function
-	Context        Context
+	Context        *Context
 	Root           string
 	Interceptors   Interceptors
 	ParentController *BaseController
@@ -53,8 +54,10 @@ type BaseController struct {
 func (c *BaseController) NewController(path string, ic IController) {
 	c.Root = path
 	defer func() {
-		if r := recover(); r != nil {
-			panic("重复的path:" + path)
+		if r := recover(); r != nil{
+			panic(r)
+			//fmt.Println(r)
+			//panic("重复的path:" + path)
 		}
 	}()
 
@@ -73,7 +76,6 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	//subbc := &BaseController{}
 	//subbc.Base = c
 	//subbc.SubPath = path
-
 
 	path = fixPath(c.Root+"/"+path)
 
@@ -189,7 +191,9 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var context = &Context{Response: w, Request: r, Session: session}
 
-	bo := c.Interceptors.ExecuteAll(context)
+	c.Context = context
+
+	bo := c.Interceptors.ExecuteAll(c)
 	if bo == false {
 		return
 	}
