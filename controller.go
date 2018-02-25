@@ -171,7 +171,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("GLSESSIONID")
 	var session *Session
 	var GLSESSIONID string
-	if err != nil {
+	if err != nil || strings.EqualFold(cookie.Value,"") {
 
 		GLSESSIONID = tool.UUID()
 		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/"})

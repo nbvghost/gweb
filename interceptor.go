@@ -2,7 +2,6 @@ package gweb
 
 import (
 	"errors"
-
 	"github.com/nbvghost/gweb/tool"
 )
 
