@@ -134,6 +134,16 @@ func (r *TextResult) Apply(context *Context) {
 	context.Response.Write([]byte(r.Data))
 }
 
+type XMLResult struct {
+	Data string
+}
+
+func (r *XMLResult) Apply(context *Context) {
+	context.Response.WriteHeader(http.StatusOK)
+	context.Response.Header().Set("Content-Type", "text/xml;charset=utf-8")
+	context.Response.Write([]byte(r.Data))
+}
+
 type RedirectToUrlResult struct {
 	Url string
 }
