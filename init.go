@@ -24,6 +24,7 @@ func init() {
 		conf.Config.JsonDataPath = "data.json"
 		conf.Config.ViewSuffix = ".html"		
 		conf.Config.ViewActionMapping = true
+		conf.Config.DBUrl = ""
 
 	} else {
 		err = json.Unmarshal(content, &conf.Config)

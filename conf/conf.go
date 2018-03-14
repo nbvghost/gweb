@@ -11,6 +11,8 @@ type mConfiger struct {
 	ViewActionMapping bool   `json:"ViewActionMapping"`
 	TLSCertFile       string `json:"TLSCertFile"`
 	TLSKeyFile        string `json:"TLSKeyFile"`
+	DBUrl        string `json:"DBUrl"`
+
 }
 
 var JsonData = make(map[string]interface{})

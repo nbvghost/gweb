@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"fmt"
-	"github.com/nbvghost/gweb/conf"
-	"log"
 )
 //拦截器
 type InterceptorManager struct {
@@ -38,18 +36,18 @@ func (c *IndexController) Apply() {
 	c.Interceptors.Add(&InterceptorManager{})//拦截器
 
 	//默认index页面
-	c.AddHandler("", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.ALLMethod("", func(context *gweb.Context) gweb.Result {
 
 		return &gweb.RedirectToUrlResult{"index"}
-	})
+	}))
 	// 如果没有地址view里的文件时的映射
-	c.AddHandler("*",func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.ALLMethod("*",func(context *gweb.Context) gweb.Result {
 		return &gweb.HTMLResult{}
-	})
+	}))
 	// 添加index地址映射
-	c.AddHandler("index", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.ALLMethod("index", func(context *gweb.Context) gweb.Result {
 		return &gweb.HTMLResult{}
-	})
+	}))
 
 
 	wx := &WxController{}
@@ -64,7 +62,7 @@ type AccountController struct {
 func (c *AccountController) Apply() {
 
 
-	c.AddHandler("login",  func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GetMethod("login",  func(context *gweb.Context) gweb.Result {
 
 		user:=&User{Name:"user name",Age:12}
 
@@ -73,7 +71,7 @@ func (c *AccountController) Apply() {
 		redirect := context.Request.URL.Query().Get("redirect")
 
 		return &gweb.RedirectToUrlResult{Url:redirect}
-	})
+	}))
 
 }
 
@@ -84,18 +82,18 @@ type WxController struct {
 func (c *WxController) Apply() {
 
 
-	c.AddHandler(":id/path",  func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GetMethod(":id/path",  func(context *gweb.Context) gweb.Result {
 
 		user:=context.Session.Attributes.Get("admin").(*User)
 
 		return &gweb.HTMLResult{Name:"wx/path",Params:map[string]interface{}{"User":user,"Id":context.PathParams}}
-	})
-	c.AddHandler("info", func(context *gweb.Context) gweb.Result {
+	}))
+	c.AddHandler(gweb.GetMethod("info", func(context *gweb.Context) gweb.Result {
 
 		user:=context.Session.Attributes.Get("admin").(*User)
 
 		return &gweb.HTMLResult{Params:map[string]interface{}{"User":user}}
-	})
+	}))
 
 }
 func main()  {
