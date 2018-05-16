@@ -64,21 +64,26 @@ func (r *HTMLResult) Apply(context *Context) {
 
 	var b []byte
 	var err error
-	if strings.EqualFold(r.Name, "") {
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
-	} else {
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
-	}
 
-	if err != nil {
+	b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path))
+	if err!=nil{
 
-		//判断是否有默认页面
-		//fmt.Println(fixPath(Config.ViewDir + "/" + path +"/"+ Config.DefaultPage))
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
-		if err != nil {
-			(&NotFindResult{}).Apply(context)
-			return
+		if strings.EqualFold(r.Name, "") {
+			b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
+		} else {
+			b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
 		}
+
+		if err != nil {
+			//判断是否有默认页面
+			//fmt.Println(fixPath(Config.ViewDir + "/" + path +"/"+ Config.DefaultPage))
+			b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
+			if err != nil {
+				(&NotFindResult{}).Apply(context)
+				return
+			}
+		}
+
 	}
 
 	//t, err := template.New("default").Funcs(FuncMap).Parse(string(b))

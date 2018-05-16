@@ -6,13 +6,13 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"time"
-
-
 	"reflect"
 
 	"github.com/nbvghost/gweb/tool"
 
+	"runtime"
+	"log"
+	"time"
 )
 
 type Context struct {
@@ -128,9 +128,8 @@ func (c *BaseController) NewController(path string, ic IController) {
 	c.Root = path
 	defer func() {
 		if r := recover(); r != nil{
-			panic(r)
-			//fmt.Println(r)
-			//panic("重复的path:" + path)
+			_, file, line, _ := runtime.Caller(1)
+			log.Println(file, line, r)
 		}
 	}()
 
@@ -222,11 +221,10 @@ func (c *BaseController) doAction(path string, context *Context) Result {
 
 		}else if c.RequestMapping[Method+","+path] != nil {
 			f = c.RequestMapping[Method+","+path]
+
 		}else {
 			//地址包括参数的方法
 			c.Lock()
-
-
 			for key, value := range c.RequestMapping {
 				keys:=strings.Split(key,",")//[Method,Path]
 				if su, params := getPathParams(string(keys[1]), path); su {
@@ -268,31 +266,41 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if r := recover(); r != nil {
-
-			tool.CheckError(r.(error))
+			//_, file, line, _ := runtime.Caller(3)
+			//log.Println(file, line, r)
+			log.Println(r)
 		}
 	}()
 
-	cookie, err := r.Cookie("GLSESSIONID")
+	DisableManagerSession:=c.Interceptors.DisableManagerSession
 	var session *Session
-	var GLSESSIONID string
-	if err != nil || strings.EqualFold(cookie.Value,"") {
 
-		GLSESSIONID = tool.UUID()
-		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/"})
-		session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
-		Sessions.addSession(GLSESSIONID, session)
+	if DisableManagerSession==false{
 
-	} else {
+		cookie, err := r.Cookie("GLSESSIONID")
+		var GLSESSIONID string
+		if err != nil || strings.EqualFold(cookie.Value,"") {
 
-		session = Sessions.GetSession(cookie.Value)
-		if session == nil {
-			session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: cookie.Value}
+			GLSESSIONID = tool.UUID()
+			http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/"})
+			session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
+			Sessions.addSession(GLSESSIONID, session)
 
-			Sessions.addSession(cookie.Value, session)
+		} else {
+
+			session = Sessions.GetSession(cookie.Value)
+			if session == nil {
+				session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: cookie.Value}
+
+				Sessions.addSession(cookie.Value, session)
+			}
+			session.ActionTime = time.Now().Unix()
 		}
-		session.ActionTime = time.Now().Unix()
+		session.LastRequestURL = r.URL
 	}
+
+
+
 
 	var context = &Context{Response: w, Request: r, Session: session}
 

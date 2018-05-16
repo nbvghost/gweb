@@ -7,11 +7,11 @@ import (
 
 type Interceptors struct {
 	list []Interceptor
+	DisableManagerSession bool
 }
 type Interceptor interface {
 	Execute(context *Context) bool
 }
-
 func (inter *Interceptors) Add(value Interceptor) {
 
 	if inter.list == nil {

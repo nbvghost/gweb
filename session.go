@@ -1,6 +1,9 @@
 package gweb
 
-import "sync"
+import (
+	"sync"
+	"net/url"
+)
 
 var Sessions = &sessionMap{Data: make(map[string]*Session)}
 
@@ -15,6 +18,7 @@ type Session struct {
 	ActionTime  int64
 	Operation   int64
 	GLSESSIONID string
+	LastRequestURL *url.URL
 }
 
 func (s *sessionMap) DelectSession(k string) {
