@@ -6,6 +6,7 @@ golang web 轻框架
 ### 支持特性：
   - 子路径独立拦截器和控制器
   - 添加子控制器
+  - 支持RESTful,OPTIONS,GET,HEAD,POST,PUT,DELETE,TRACE,CONNECT
   - 支持 :id/path 路径映射
   - 内置返回类型有：ViewResult，HTMLResult，JsonResult，TextResult，RedirectToUrlResult，ImageResult，ImageBytesResult
   - 内置模板函数，除了golang的函数，还增加了IncludeHTML，Split，FromJSONToMap，FromJSONToArray，CipherDecrypter，CipherEncrypter，Int2String，Uint2String，Float2String，ToJSON
@@ -68,18 +69,18 @@ func (c *IndexController) Apply() {
 	c.Interceptors.Add(&InterceptorManager{})//拦截器
 
 	//默认index页面
-	c.AddHandler("", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.ALLMethod("", func(context *gweb.Context) gweb.Result {
 
 		return &gweb.RedirectToUrlResult{"index"}
-	})
+	}))
 	// 如果没有地址view里的文件时的映射
-	c.AddHandler("*",func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.ALLMethod("*",func(context *gweb.Context) gweb.Result {
 		return &gweb.HTMLResult{}
-	})
+	}))
 	// 添加index地址映射
-	c.AddHandler("index", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.ALLMethod("index", func(context *gweb.Context) gweb.Result {
 		return &gweb.HTMLResult{}
-	})
+	}))
 
 
 	wx := &WxController{}
@@ -94,7 +95,7 @@ type AccountController struct {
 func (c *AccountController) Apply() {
 
 
-	c.AddHandler("login",  func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GetMethod("login",  func(context *gweb.Context) gweb.Result {
 
 		user:=&User{Name:"user name",Age:12}
 
@@ -103,7 +104,7 @@ func (c *AccountController) Apply() {
 		redirect := context.Request.URL.Query().Get("redirect")
 
 		return &gweb.RedirectToUrlResult{Url:redirect}
-	})
+	}))
 
 }
 
@@ -114,18 +115,18 @@ type WxController struct {
 func (c *WxController) Apply() {
 
 
-	c.AddHandler(":id/path",  func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GetMethod(":id/path",  func(context *gweb.Context) gweb.Result {
 
 		user:=context.Session.Attributes.Get("admin").(*User)
 
 		return &gweb.HTMLResult{Name:"wx/path",Params:map[string]interface{}{"User":user,"Id":context.PathParams}}
-	})
-	c.AddHandler("info", func(context *gweb.Context) gweb.Result {
+	}))
+	c.AddHandler(gweb.GetMethod("info", func(context *gweb.Context) gweb.Result {
 
 		user:=context.Session.Attributes.Get("admin").(*User)
 
 		return &gweb.HTMLResult{Params:map[string]interface{}{"User":user}}
-	})
+	}))
 
 }
 func main()  {
@@ -154,7 +155,17 @@ func main()  {
 	//启动web服务器
 	gweb.StartServer(true,false)
 
+
+	//也可用，内置函数,gweb只是简单的做一个封装的
+	//err := http.ListenAndServe(conf.Config.HttpPort, nil)
+	//log.Println(err)
+
+
+
 }
+
+
+
 
 ```
 具体代码请查看demo目录：https://github.com/nbvghost/gweb/tree/master/demo/gwebtest
