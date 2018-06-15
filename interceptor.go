@@ -3,9 +3,11 @@ package gweb
 import (
 	"errors"
 	"github.com/nbvghost/gweb/tool"
+	"sync"
 )
 
 type Interceptors struct {
+	sync.Mutex
 	list []Interceptor
 	DisableManagerSession bool
 }
@@ -27,10 +29,11 @@ func (inter *Interceptors) Add(value Interceptor) {
 func (inter *Interceptors) ExecuteAll(c *BaseController) bool {
 	for _, value := range inter.list {
 
-
 		//fmt.Println(c.Context.Request.URL.Path)
 		//fmt.Println(c.Root)
+		inter.Lock()
 		bo := value.Execute(c.Context)
+		inter.Unlock()
 		if bo == false {
 			return false
 		}

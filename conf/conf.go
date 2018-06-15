@@ -1,7 +1,10 @@
 package conf
 type mConfiger struct {
 	ViewDir           string `json:"ViewDir"`
+	UploadDir      string `json:"UploadDir"`
 	ResourcesDir      string `json:"ResourcesDir"`
+	ResourcesDirName      string `json:"ResourcesDirName"`
+	UploadDirName      string `json:"UploadDirName"`
 	DefaultPage       string `json:"DefaultPage"`
 	JsonDataPath      string `json:"JsonDataPath"`
 	HttpPort          string `json:"HttpPort"`

@@ -5,12 +5,66 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
+	mathrand "math/rand"
 	"encoding/hex"
 	"errors"
 	"io"
 	"strings"
+	"bytes"
+	"encoding/binary"
+
+	"time"
 )
 
+type Hashids struct {
+	
+}
+
+func (Hashids)Encode(id uint64) string  {
+	tem:=make([]byte,8)
+	bytesBuffer := bytes.NewBuffer(tem)
+	binary.Write(bytesBuffer, binary.BigEndian, id)
+	bb:=bytesBuffer.Bytes()
+	mathrand.Seed(time.Now().UnixNano())
+	for i:=0;i<8;i++{
+		//fmt.Println(index)
+		//fmt.Println(value)
+
+		bb[i]=byte(mathrand.Int31n(int32(256)-int32(bb[i+8])))
+		bb[i+8] = bb[i+8]+bb[i]
+	}
+
+	//fmt.Println((indexP))
+	//fmt.Println(len(bb))
+	//fmt.Println((bb))
+	cc:=hex.EncodeToString(bb)
+
+	return cc
+}
+func (Hashids)Decode(id string) uint64  {
+	bb,err:=hex.DecodeString(id)
+	if err!=nil{
+		return 0
+	}
+
+	for i:=0;i<8;i++{
+		pw:=bb[i+8]-bb[i]
+		if pw>255{
+			pw = 0
+		}
+		bb[i+8] = pw
+		bb[i]=0
+		//bb[i]=byte(rand.Int31n(int32(256)-int32(bb[i+8])))
+	}
+	//fmt.Println(bb)
+	bytesBuffer:= bytes.NewBuffer(bb[8:])
+	var ii uint64
+	binary.Read(bytesBuffer, binary.BigEndian, &ii)
+
+	return ii
+}
+
+//const public_PassWord = "96E5F29353C4A335D2FC4A71DFC8DA3D" // 公共加密字符串
 const public_PassWord = "96E5F29353C4A335D2FC4A71DFC8DA3D" // 公共加密字符串
 
 //加密
@@ -18,21 +72,24 @@ func CipherEncrypter(tkey, tvalue string) string {
 	key := []byte(tkey)
 	plaintext := []byte(tvalue)
 
+	BlockSize:=aes.BlockSize
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		CheckError(err)
 	}
 
+
 	// The IV needs to be unique, but not secure. Therefore it's common to
 	// include it at the beginning of the ciphertext.
-	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
+	ciphertext := make([]byte, BlockSize+len(plaintext))
+	iv := ciphertext[:BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		CheckError(err)
 	}
 
 	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+	stream.XORKeyStream(ciphertext[BlockSize:], plaintext)
 
 	// It's important to remember that ciphertexts must be authenticated
 	// (i.e. by using crypto/hmac) as well as being encrypted in order to
@@ -50,9 +107,16 @@ func CipherEncrypterData(source string) string {
 	str := CipherEncrypter(public_PassWord, source)
 	return str
 }
-func Md5(valeu string) string {
+
+func Md5ByString(valeu string) string {
 	ddf := md5.New()
 	ddf.Write([]byte(valeu))
+	md5Str := hex.EncodeToString(ddf.Sum(nil))
+	return strings.ToUpper(md5Str)
+}
+func Md5ByBytes(valeu []byte) string {
+	ddf := md5.New()
+	ddf.Write(valeu)
 	md5Str := hex.EncodeToString(ddf.Sum(nil))
 	return strings.ToUpper(md5Str)
 }

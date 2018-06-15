@@ -187,10 +187,13 @@ func (r *ImageResult) Apply(context *Context) {
 
 type ImageBytesResult struct {
 	Data []byte
+	ContentType string//: image/png
 }
 
 func (r *ImageBytesResult) Apply(context *Context) {
 
+	//context.Response.Header().Add()
+	context.Response.Header().Set("Content-Type", r.ContentType)
 	context.Response.Write(r.Data)
 
 }
