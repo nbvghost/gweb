@@ -9,6 +9,7 @@ import (
 	"github.com/nbvghost/gweb/tool"
 	"github.com/nbvghost/gweb/conf"
 	"os"
+	"strings"
 )
 
 var tempFiles = make(map[string]int64)
@@ -19,10 +20,13 @@ func init() {
 		tool.Trace("缺少配制文件：gweb.json")
 		tool.Trace("使用默认配制：")
 		conf.Config.ViewDir = "view"
-		conf.Config.UploadDir = "upload"
+
 		conf.Config.ResourcesDir = "resources"
 		conf.Config.ResourcesDirName = "resources"
+
+		conf.Config.UploadDir = "upload"
 		conf.Config.UploadDirName = "upload"
+
 		conf.Config.DefaultPage = "index"
 		conf.Config.HttpPort = ":80"
 		conf.Config.HttpsPort = ":443"
@@ -35,6 +39,20 @@ func init() {
 	} else {
 		err = json.Unmarshal(content, &conf.Config)
 		tool.CheckError(err)
+	}
+
+	if strings.EqualFold(conf.Config.ResourcesDir,""){
+		conf.Config.ResourcesDir="resources"
+	}
+	if strings.EqualFold(conf.Config.ResourcesDirName,""){
+		conf.Config.ResourcesDirName="resources"
+	}
+
+	if strings.EqualFold(conf.Config.UploadDir,""){
+		conf.Config.UploadDir="upload"
+	}
+	if strings.EqualFold(conf.Config.UploadDirName,""){
+		conf.Config.UploadDirName="upload"
 	}
 
 	dt, _ := json.Marshal(conf.Config)
