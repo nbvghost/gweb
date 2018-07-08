@@ -10,39 +10,58 @@ type List struct {
 	Collection []interface{}
 	SortFunc   func(i, j int) bool
 }
-
-func (this *List) String() string {
+func (list *List) Shift() interface{} {
+	old := (*list).Collection
+	n := len(old)
+	if n==0{
+		return nil
+	}
+	x := old[0:1][0]
+	(*list).Collection = old[1:]
+	return x
+}
+func (list *List) Pop() interface{} {
+	old := (*list).Collection
+	n := len(old)
+	if n==0{
+		return nil
+	}
+	x := old[n-1].([]interface{})[0]
+	(*list).Collection = old[0 : n-1]
+	return x
+}
+func (list *List) String() string {
 	var txt = ""
-	for _, value := range this.Collection {
+	for _, value := range list.Collection {
 		txt = txt + "," + value.(string)
 	}
 	return txt
 }
-func (this *List) Append(elems interface{}) {
+func (list *List) Append(elems interface{}) {
 
-	this.Collection = append(this.Collection, elems)
+	list.Collection = append(list.Collection, elems)
 }
-func (this *List) Len() int {
-	return len(this.Collection)
+func (list *List) Len() int {
+	return len(list.Collection)
 }
-func (this *List) Less(i, j int) bool {
-	return this.SortFunc(i, j)
+func (list *List) Less(i, j int) bool {
+	return list.SortFunc(i, j)
 }
-func (this *List) Swap(i, j int) {
-	var temp interface{} = this.Collection[i]
-	this.Collection[i] = this.Collection[j]
-	this.Collection[j] = temp
+func (list *List) Swap(i, j int) {
+	var temp = list.Collection[i]
+	list.Collection[i] = list.Collection[j]
+	list.Collection[j] = temp
 }
-func (this *List) SortL() {
-	this.SortFunc = func(i, j int) bool {
-		return this.Collection[i].(string) < this.Collection[j].(string)
+func (list *List) SortL() {
+	list.SortFunc = func(i, j int) bool {
+		return list.Collection[i].(string) < list.Collection[j].(string)
 	}
 
-	sort.Sort(this)
+	sort.Sort(list)
 }
-func (this *List) Join(fix string) string {
+func (list *List) Join(fix string) string {
 	var txt = ""
-	for _, value := range this.Collection {
+	for _, value := range list.Collection {
 		if strings.EqualFold(txt, "") {
 			txt = (value).(string)
 		} else {
@@ -52,10 +71,10 @@ func (this *List) Join(fix string) string {
 	}
 	return txt
 }
-func (this *List) SortH() {
-	this.SortFunc = func(i, j int) bool {
-		a := this.Collection[i].(string)
-		b := this.Collection[j].(string)
+func (list *List) SortH() {
+	list.SortFunc = func(i, j int) bool {
+		a := list.Collection[i].(string)
+		b := list.Collection[j].(string)
 		if a[0] > b[0] {
 			return true
 		} else if a[0] == b[0] {
@@ -87,5 +106,5 @@ func (this *List) SortH() {
 		}
 		//return this.Collection[i].(string) > this.Collection[j].(string)
 	}
-	sort.Sort(this)
+	sort.Sort(list)
 }

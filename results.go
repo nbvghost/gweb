@@ -52,6 +52,13 @@ type ViewResult struct {
 func (r *ViewResult) Apply(context *Context) {
 
 }
+type EmptyResult struct {
+}
+
+func (r *EmptyResult) Apply(context *Context) {
+
+}
+
 
 type HTMLResult struct {
 	Name   string

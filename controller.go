@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"log"
 	"time"
+	"runtime/debug"
 )
 
 type Context struct {
@@ -266,51 +267,44 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			//_, file, line, _ := runtime.Caller(3)
-			//log.Println(file, line, r)
-			log.Println(r)
+			debug.PrintStack()
+			tool.Trace(r)
 		}
 	}()
 
-	DisableManagerSession:=c.Interceptors.DisableManagerSession
 	var session *Session
 
-	if DisableManagerSession==false{
+	cookie, err := r.Cookie("GLSESSIONID")
+	var GLSESSIONID string
+	if err != nil || strings.EqualFold(cookie.Value,"") {
 
-		cookie, err := r.Cookie("GLSESSIONID")
-		var GLSESSIONID string
-		if err != nil || strings.EqualFold(cookie.Value,"") {
+		GLSESSIONID = tool.UUID()
+		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/"})
+		session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
+		Sessions.addSession(GLSESSIONID, session)
 
-			GLSESSIONID = tool.UUID()
-			http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/"})
-			session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
-			Sessions.addSession(GLSESSIONID, session)
+	} else {
 
-		} else {
+		session = Sessions.GetSession(cookie.Value)
+		if session == nil {
+			session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: cookie.Value}
 
-			session = Sessions.GetSession(cookie.Value)
-			if session == nil {
-				session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: cookie.Value}
-
-				Sessions.addSession(cookie.Value, session)
-			}
-			session.ActionTime = time.Now().Unix()
+			Sessions.addSession(cookie.Value, session)
 		}
-		session.LastRequestURL = r.URL
+		session.ActionTime = time.Now().Unix()
 	}
-
-
-
+	session.LastRequestURL = r.URL
 
 	var context = &Context{Response: w, Request: r, Session: session}
-
 	c.Context = context
-
-	bo := c.Interceptors.ExecuteAll(c)
+	bo,result := c.Interceptors.ExecuteAll(c)
 	if bo == false {
+		if result!=nil{
+			result.Apply(context)
+		}
 		return
 	}
-	result := c.doAction(r.URL.Path, context)
+	result = c.doAction(r.URL.Path, context)
 	result.Apply(context)
 }
 

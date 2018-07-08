@@ -4,17 +4,20 @@ import (
 	"errors"
 	"github.com/nbvghost/gweb/tool"
 	"sync"
+	"net/http"
 )
 
 type Interceptors struct {
-	sync.Mutex
+	lock  *sync.Mutex
 	list []Interceptor
-	DisableManagerSession bool
 }
 type Interceptor interface {
-	Execute(context *Context) bool
+	Execute(Session *Session,Request *http.Request)(bool,Result)
 }
 func (inter *Interceptors) Add(value Interceptor) {
+	if inter.lock==nil{
+		inter.lock =&sync.Mutex{}
+	}
 
 	if inter.list == nil {
 		inter.list = make([]Interceptor, 0)
@@ -26,24 +29,21 @@ func (inter *Interceptors) Add(value Interceptor) {
 		tool.CheckError(errors.New("已经存在"))
 	}
 }
-func (inter *Interceptors) ExecuteAll(c *BaseController) bool {
-	for _, value := range inter.list {
-
-		//fmt.Println(c.Context.Request.URL.Path)
-		//fmt.Println(c.Root)
-		inter.Lock()
-		bo := value.Execute(c.Context)
-		inter.Unlock()
-		if bo == false {
-			return false
-		}
-		/*ikey := strings.Split(key, "*")[0]
-		if strings.Contains(path, ikey) {
-			return true, value
-		}*/
-
+func (inter *Interceptors) ExecuteAll(c *BaseController) (bool,Result) {
+	if inter.lock==nil{
+		inter.lock =&sync.Mutex{}
 	}
-	return true
+	inter.lock.Lock()
+	defer inter.lock.Unlock()
+	for _, value := range inter.list {
+		//Execute(Session *Session,Request *http.Request) Result
+
+		bo,result:= value.Execute(c.Context.Session,c.Context.Request)
+		if bo == false {
+			return false,result
+		}
+	}
+	return true,nil
 }
 
 func (inter *Interceptors) Contains(interceptor Interceptor) bool {
