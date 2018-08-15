@@ -37,24 +37,23 @@ import (
 	"github.com/nbvghost/gweb"
 	"net/http"
 	"net/url"
-	"fmt"
 )
 //拦截器
 type InterceptorManager struct {
 }
 //拦截器 方法，如果 允许登陆 返回true
-func (this InterceptorManager) Execute(context *gweb.Context) bool {
-	if context.Session.Attributes.Get("admin") == nil { //判断当前 session 信息
+func (this InterceptorManager) Execute(Session *gweb.Session,Request *http.Request,Response http.ResponseWriter)(bool,gweb.Result) {
+	if Session.Attributes.Get("admin") == nil { //判断当前 session 信息
 		redirect := "" // 跳转地址
-		if len(context.Request.URL.Query().Encode()) == 0 {
-			redirect = context.Request.URL.Path
+		if len(Request.URL.Query().Encode()) == 0 {
+			redirect = Request.URL.Path
 		} else {
-			redirect = context.Request.URL.Path + "?" + context.Request.URL.Query().Encode()
+			redirect = Request.URL.Path + "?" + Request.URL.Query().Encode()
 		}
-		http.Redirect(context.Response, context.Request, "/account/login?redirect="+url.QueryEscape(redirect), http.StatusFound)
-		return false
+		//http.Redirect(Response, Request, "/account/login?redirect="+url.QueryEscape(redirect), http.StatusFound)
+		return false,&gweb.RedirectToUrlResult{Url:"/account/login?redirect="+url.QueryEscape(redirect)}
 	} else {
-		return true
+		return true,nil
 	}
 }
 type User struct {
@@ -95,7 +94,7 @@ type AccountController struct {
 func (c *AccountController) Apply() {
 
 
-	c.AddHandler(gweb.GetMethod("login",  func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GETMethod("login",  func(context *gweb.Context) gweb.Result {
 
 		user:=&User{Name:"user name",Age:12}
 
@@ -115,13 +114,13 @@ type WxController struct {
 func (c *WxController) Apply() {
 
 
-	c.AddHandler(gweb.GetMethod(":id/path",  func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GETMethod(":id/path",  func(context *gweb.Context) gweb.Result {
 
 		user:=context.Session.Attributes.Get("admin").(*User)
 
 		return &gweb.HTMLResult{Name:"wx/path",Params:map[string]interface{}{"User":user,"Id":context.PathParams}}
 	}))
-	c.AddHandler(gweb.GetMethod("info", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GETMethod("info", func(context *gweb.Context) gweb.Result {
 
 		user:=context.Session.Attributes.Get("admin").(*User)
 
@@ -133,14 +132,6 @@ func main()  {
 
 
 
-	var kkk = new(IndexController)
-	fmt.Println(kkk)
-	kkk =&IndexController{}
-	fmt.Println(kkk)
-
-
-	kkks :=IndexController{}
-	fmt.Println(kkks)
 
 	//初始化控制器，拦截 / 路径
 	index := &IndexController{}
@@ -167,7 +158,10 @@ func main()  {
 
 
 
+
+
+
 ```
 具体代码请查看demo目录：https://github.com/nbvghost/gweb/tree/master/demo/gwebtest
 
-交流QQ群：6371729
+也可以加我QQ：274455411
