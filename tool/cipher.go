@@ -5,40 +5,37 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
-	mathrand "math/rand"
-	"encoding/hex"
+		"encoding/hex"
 	"errors"
 	"io"
 	"strings"
-	"bytes"
-	"encoding/binary"
-
-	"time"
+	"strconv"
+	"net/url"
 )
 
 type Hashids struct {
 	
 }
+func (Hashids)EncodeShareKey(UserID uint64) string {
+	return "UserID:" + strconv.Itoa(int(UserID))
+}
+func (Hashids)DecodeShareKey(ShareKey string) uint64 {
+	_ShareKey, _ := url.QueryUnescape(ShareKey)
+	SuperiorID, _ := strconv.ParseUint(strings.Split(_ShareKey, ":")[1], 10, 64)
+	return SuperiorID
+}
 
-func (Hashids)Encode(id uint64) string  {
+/*func (Hashids)Encode(id uint64) string  {
 	tem:=make([]byte,8)
 	bytesBuffer := bytes.NewBuffer(tem)
 	binary.Write(bytesBuffer, binary.BigEndian, id)
 	bb:=bytesBuffer.Bytes()
 	mathrand.Seed(time.Now().UnixNano())
 	for i:=0;i<8;i++{
-		//fmt.Println(index)
-		//fmt.Println(value)
-
 		bb[i]=byte(mathrand.Int31n(int32(256)-int32(bb[i+8])))
 		bb[i+8] = bb[i+8]+bb[i]
 	}
-
-	//fmt.Println((indexP))
-	//fmt.Println(len(bb))
-	//fmt.Println((bb))
 	cc:=hex.EncodeToString(bb)
-
 	return cc
 }
 func (Hashids)Decode(id string) uint64  {
@@ -46,7 +43,6 @@ func (Hashids)Decode(id string) uint64  {
 	if err!=nil{
 		return 0
 	}
-
 	for i:=0;i<8;i++{
 		pw:=bb[i+8]-bb[i]
 		if pw>255{
@@ -54,15 +50,12 @@ func (Hashids)Decode(id string) uint64  {
 		}
 		bb[i+8] = pw
 		bb[i]=0
-		//bb[i]=byte(rand.Int31n(int32(256)-int32(bb[i+8])))
 	}
-	//fmt.Println(bb)
 	bytesBuffer:= bytes.NewBuffer(bb[8:])
 	var ii uint64
 	binary.Read(bytesBuffer, binary.BigEndian, &ii)
-
 	return ii
-}
+}*/
 
 //const public_PassWord = "96E5F29353C4A335D2FC4A71DFC8DA3D" // 公共加密字符串
 const public_PassWord = "96E5F29353C4A335D2FC4A71DFC8DA3D" // 公共加密字符串

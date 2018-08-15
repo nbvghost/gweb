@@ -13,6 +13,7 @@ import (
 
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
+	"bytes"
 )
 
 type Result interface {
@@ -124,7 +125,15 @@ func (r *JsonResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	b, err = json.Marshal(r.Data)
+
+	buffer:= &bytes.Buffer{}
+	encoder:= json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+
+	err=encoder.Encode(r.Data)
+	//return buffer.Bytes(), err
+	//b, err = json.Marshal(r.Data)
+	b = buffer.Bytes()
 
 	if err != nil {
 		(&ErrorResult{Error: err}).Apply(context)

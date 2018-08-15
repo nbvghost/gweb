@@ -12,7 +12,7 @@ type Interceptors struct {
 	list []Interceptor
 }
 type Interceptor interface {
-	Execute(Session *Session,Request *http.Request)(bool,Result)
+	Execute(Session *Session,Request *http.Request,Response http.ResponseWriter)(bool,Result)
 }
 func (inter *Interceptors) Add(value Interceptor) {
 	if inter.lock==nil{
@@ -38,7 +38,7 @@ func (inter *Interceptors) ExecuteAll(c *BaseController) (bool,Result) {
 	for _, value := range inter.list {
 		//Execute(Session *Session,Request *http.Request) Result
 
-		bo,result:= value.Execute(c.Context.Session,c.Context.Request)
+		bo,result:= value.Execute(c.Context.Session,c.Context.Request,c.Context.Response)
 		if bo == false {
 			return false,result
 		}

@@ -10,7 +10,8 @@ import (
 	"strings"
 
 	"github.com/nbvghost/gweb/conf"
-)
+	"time"
+	)
 
 func FuncMap() template.FuncMap {
 
@@ -25,7 +26,18 @@ func FuncMap() template.FuncMap {
 		"Uint2String":     uint2String,
 		"Float2String":    float2String,
 		"ToJSON":          toJSON,
+		"DateTimeFormat":          DateTimeFormat,
+		"HTML":          HTML,
 	}
+}
+func HTML(source string) template.HTML {
+	//fmt.Println(source)
+	return template.HTML(source)
+}
+func DateTimeFormat(source time.Time,format string) string {
+	//fmt.Println(source)
+	//fmt.Println(format)
+	return source.Format(format)
 }
 func toJSON(source interface{}) string {
 	b, err := json.Marshal(source)

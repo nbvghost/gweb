@@ -10,10 +10,11 @@ type List struct {
 	Collection []interface{}
 	SortFunc   func(i, j int) bool
 }
+
 func (list *List) Shift() interface{} {
 	old := (*list).Collection
 	n := len(old)
-	if n==0{
+	if n == 0 {
 		return nil
 	}
 	x := old[0:1][0]
@@ -23,7 +24,7 @@ func (list *List) Shift() interface{} {
 func (list *List) Pop() interface{} {
 	old := (*list).Collection
 	n := len(old)
-	if n==0{
+	if n == 0 {
 		return nil
 	}
 	x := old[n-1].([]interface{})[0]

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"github.com/nbvghost/gweb/tool"
 	"github.com/nbvghost/gweb/conf"
-	"os"
+	_ "net/http/pprof"
 	"strings"
+	"os"
+	"net/url"
 )
-
-var tempFiles = make(map[string]int64)
 func init() {
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
 	content, err := ioutil.ReadFile("gweb.json")
@@ -61,10 +61,15 @@ func init() {
 
 	go func() {
 		mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
-		tool.CheckError(err)
-		fmt.Printf("当前data.json数据：\n%v\n",string(mJsonData))
+		if err!=nil{
+			tool.Trace("当前未使用data.json 文件")
+		}else{
+			fmt.Printf("当前data.json数据：\n%v\n",string(mJsonData))
+		}
+
 
 		for {
+
 			mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
 			if err == nil {
 				err = json.Unmarshal(mJsonData, &conf.JsonData)
@@ -77,14 +82,26 @@ func init() {
 
 	go func() {
 
-		err:=os.RemoveAll("temp")
-		tool.CheckError(err)
+		//err:=os.RemoveAll("temp")
+		//tool.CheckError(err)
 		for{
-			for k,v:=range tempFiles{
-				if time.Now().Unix()>time.Unix(v,0).Add(time.Minute*3).Unix(){
-					delete(tempFiles,k)
 
-					err=os.Remove(k)
+			fileList,err:=ioutil.ReadDir("temp")
+			if err!=nil{
+				time.Sleep(time.Second)
+				continue
+			}
+			for _,v:=range fileList{
+				//fmt.Println(k,v)
+				fileNodes,err:=ioutil.ReadDir("temp"+"/"+v.Name())
+				for _,file:=range fileNodes{
+					if time.Now().Unix()>file.ModTime().Add(time.Minute*3).Unix(){
+						err=os.Remove("temp"+"/"+v.Name()+"/"+file.Name())
+						tool.CheckError(err)
+					}
+				}
+				if len(fileNodes)<=0{
+					err=os.Remove("temp"+"/"+v.Name())
 					tool.CheckError(err)
 				}
 
@@ -101,7 +118,7 @@ func init() {
 
 	http.Handle("/"+conf.Config.ResourcesDirName+"/", http.StripPrefix("/"+conf.Config.ResourcesDirName+"/", http.FileServer(http.Dir(conf.Config.ResourcesDir))))
 	http.Handle("/"+conf.Config.UploadDirName+"/", http.StripPrefix("/"+conf.Config.UploadDirName+"/", http.FileServer(http.Dir(conf.Config.UploadDir))))
-	http.Handle("/temp/temp/", http.StripPrefix("/temp/temp/", http.FileServer(http.Dir("temp"))))
+	http.Handle("/temp/", http.StripPrefix("/temp/", http.FileServer(http.Dir("temp"))))
 }
 func fileUp(writer http.ResponseWriter, request *http.Request)  {
 
@@ -117,7 +134,7 @@ func fileUp(writer http.ResponseWriter, request *http.Request)  {
 	result:=make(map[string]interface{})
 	result["Success"]=true
 	result["Message"]="OK"
-	result["Data"]=fileName
+	result["Data"]="//"+conf.Config.Domain+"/file/load?path="+fileName
 	rb,_:=json.Marshal(result)
 	writer.Write(rb)
 	//framework.WriteJSON(context, &framework.ActionStatus{true, "oK", base64Data})
@@ -125,22 +142,26 @@ func fileUp(writer http.ResponseWriter, request *http.Request)  {
 }
 func fileLoad(writer http.ResponseWriter, request *http.Request)  {
 	path := request.URL.Query().Get("path")
+
+	urldd,err:=url.Parse(path)
+	tool.CheckError(err)
+	if strings.EqualFold(urldd.Scheme,"") && strings.EqualFold(urldd.Host,""){
+		http.Redirect(writer, request,"/"+path, http.StatusFound)
+	}else{
+		http.Redirect(writer, request,path, http.StatusFound)
+	}
+
 	//fmt.Println(util.GetHost(context))
 	//return &gweb.ImageResult{FilePath: path}
 	//return &gweb.RedirectToUrlResult{Url:"/file/"}
-	http.Redirect(writer, request,"/"+path, http.StatusFound)
+
 }
 func fileTempLoad(writer http.ResponseWriter, request *http.Request)  {
 	path := request.URL.Query().Get("path")
 	//fmt.Println(util.GetHost(context))
 	//return &gweb.ImageResult{FilePath: path}
 	//return &gweb.RedirectToUrlResult{Url:"/file/"}
-	tempFiles[path]=time.Now().Unix()
+	//tempFiles[path]=time.Now().Unix()
 	http.Redirect(writer, request,"/temp/"+path, http.StatusFound)
-
-
-
-
-
 
 }

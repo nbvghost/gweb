@@ -29,28 +29,28 @@ type function struct {
 	Function func(context *Context) Result
 }
 
-func GetMethod(RoutePath string,call func(context *Context) Result) function  {
+func GETMethod(RoutePath string,call func(context *Context) Result) function  {
 	var _function function
 	_function.Method="GET"
 	_function.RoutePath=RoutePath
 	_function.Function =call
 	return _function
 }
-func OPTIONSMethod(RoutePath string,call func(context *Context) Result) function  {
+func OPTMethod(RoutePath string,call func(context *Context) Result) function  {
 	var _function function
 	_function.Method="OPTIONS"
 	_function.RoutePath=RoutePath
 	_function.Function =call
 	return _function
 }
-func HEADMethod(RoutePath string,call func(context *Context) Result) function  {
+func HEAMethod(RoutePath string,call func(context *Context) Result) function  {
 	var _function function
 	_function.Method="HEAD"
 	_function.RoutePath=RoutePath
 	_function.Function =call
 	return _function
 }
-func POSTMethod(RoutePath string,call func(context *Context) Result) function  {
+func POSMethod(RoutePath string,call func(context *Context) Result) function  {
 	var _function function
 	_function.Method="POST"
 	_function.RoutePath=RoutePath
@@ -64,21 +64,21 @@ func PUTMethod(RoutePath string,call func(context *Context) Result) function  {
 	_function.Function =call
 	return _function
 }
-func DELETEMethod(RoutePath string,call func(context *Context) Result) function  {
+func DELMethod(RoutePath string,call func(context *Context) Result) function  {
 	var _function function
 	_function.Method="DELETE"
 	_function.RoutePath=RoutePath
 	_function.Function =call
 	return _function
 }
-func TRACEMethod(RoutePath string,call func(context *Context) Result) function  {
+func TRAMethod(RoutePath string,call func(context *Context) Result) function  {
 	var _function function
 	_function.Method="TRACE"
 	_function.RoutePath=RoutePath
 	_function.Function =call
 	return _function
 }
-func CONNECTMethod(RoutePath string,call func(context *Context) Result) function  {
+func CONMethod(RoutePath string,call func(context *Context) Result) function  {
 	var _function function
 	_function.Method="CONNECT"
 	_function.RoutePath=RoutePath
@@ -267,8 +267,9 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			debug.PrintStack()
 			tool.Trace(r)
+			debug.PrintStack()
+
 		}
 	}()
 
