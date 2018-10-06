@@ -2,18 +2,19 @@ package gweb
 
 import (
 	"errors"
+	"github.com/nbvghost/gweb/conf"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
-	"reflect"
 
 	"github.com/nbvghost/gweb/tool"
 
-	"runtime"
 	"log"
-	"time"
+	"runtime"
 	"runtime/debug"
+	"time"
 )
 
 type Context struct {
@@ -21,6 +22,7 @@ type Context struct {
 	Request    *http.Request
 	Session    *Session
 	PathParams map[string]string
+	Data map[string]interface{}
 }
 
 type function struct {
@@ -296,7 +298,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	session.LastRequestURL = r.URL
 
-	var context = &Context{Response: w, Request: r, Session: session}
+	var context = &Context{Response: w, Request: r, Session: session,Data:conf.JsonData}
 	c.Context = context
 	bo,result := c.Interceptors.ExecuteAll(c)
 	if bo == false {

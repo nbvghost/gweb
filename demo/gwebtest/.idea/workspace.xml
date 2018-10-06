@@ -2,20 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="b9bc6dea-5c2c-4ccc-ae26-6420d3053595" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../controller.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/view/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/view/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../init.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../init.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../interceptor.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../interceptor.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../results.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../results.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../tool/cipher.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../tool/cipher.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../tool/collection.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../tool/collection.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../tool/funcmap.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../tool/funcmap.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../tool/io.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../tool/io.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../tool/net.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../tool/net.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -27,6 +15,7 @@
     <session id="2089195003">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
+          <entry key="project.closed" value="1" />
           <entry key="project.open.time.0" value="1" />
           <entry key="project.opened" value="1" />
         </counts>
@@ -60,8 +49,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="378">
-              <caret line="25" column="18" lean-forward="true" selection-start-line="25" selection-start-column="18" selection-end-line="25" selection-end-column="18" />
+            <state relative-caret-position="324">
+              <caret line="22" column="23" lean-forward="true" selection-start-line="22" selection-start-column="23" selection-end-line="22" selection-end-column="23" />
             </state>
           </provider>
         </entry>
@@ -248,7 +237,7 @@
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
       <window_info anchor="bottom" id="Run" order="2" />
-      <window_info active="true" anchor="bottom" id="Debug" order="3" visible="true" weight="0.33154505" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.33154505" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -320,8 +309,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="378">
-          <caret line="25" column="18" lean-forward="true" selection-start-line="25" selection-start-column="18" selection-end-line="25" selection-end-column="18" />
+        <state relative-caret-position="324">
+          <caret line="22" column="23" lean-forward="true" selection-start-line="22" selection-start-column="23" selection-end-line="22" selection-end-column="23" />
         </state>
       </provider>
     </entry>

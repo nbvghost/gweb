@@ -113,6 +113,7 @@ func init() {
 
 	http.HandleFunc("/file/up", fileUp)
 	http.HandleFunc("/file/load", fileLoad)
+	http.HandleFunc("/file/net/load", fileNetLoad)
 	http.HandleFunc("/file/temp/load", fileTempLoad)
 
 
@@ -140,6 +141,30 @@ func fileUp(writer http.ResponseWriter, request *http.Request)  {
 	//framework.WriteJSON(context, &framework.ActionStatus{true, "oK", base64Data})
 	//return &gweb.JsonResult{Data: &dao.ActionStatus{Success: true, Message: "ok", Data: fileName}}
 }
+func fileNetLoad(writer http.ResponseWriter, request *http.Request)  {
+	url := request.URL.Query().Get("url")
+	client:=http.Client{}
+	req,err:=http.NewRequest("GET",url,nil)
+	if err != nil {
+		writer.Write([]byte{})
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		writer.Write([]byte{})
+		return
+	}
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err!=nil{
+		writer.Write([]byte{})
+		return
+	}
+	//return WriteFile(b, resp.Header.Get("Content-Type"))
+	writer.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	writer.Write(b)
+}
 func fileLoad(writer http.ResponseWriter, request *http.Request)  {
 	path := request.URL.Query().Get("path")
 
@@ -150,11 +175,6 @@ func fileLoad(writer http.ResponseWriter, request *http.Request)  {
 	}else{
 		http.Redirect(writer, request,path, http.StatusFound)
 	}
-
-	//fmt.Println(util.GetHost(context))
-	//return &gweb.ImageResult{FilePath: path}
-	//return &gweb.RedirectToUrlResult{Url:"/file/"}
-
 }
 func fileTempLoad(writer http.ResponseWriter, request *http.Request)  {
 	path := request.URL.Query().Get("path")

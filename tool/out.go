@@ -8,10 +8,11 @@ import (
 func Trace(v ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
 	//util.Trace(funcName,file,line,ok)
-	if v != nil {
-		log.Println(file, line, v)
+	for _,va:=range v{
+		if va != nil {
+			log.Println(file, line, va)
+		}
 	}
-
 }
 
 func CheckError(err error) {

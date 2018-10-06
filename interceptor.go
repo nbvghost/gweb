@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/nbvghost/gweb/tool"
 	"sync"
-	"net/http"
 )
 
 type Interceptors struct {
@@ -12,7 +11,7 @@ type Interceptors struct {
 	list []Interceptor
 }
 type Interceptor interface {
-	Execute(Session *Session,Request *http.Request,Response http.ResponseWriter)(bool,Result)
+	Execute(Context *Context)(bool,Result)
 }
 func (inter *Interceptors) Add(value Interceptor) {
 	if inter.lock==nil{
@@ -38,7 +37,7 @@ func (inter *Interceptors) ExecuteAll(c *BaseController) (bool,Result) {
 	for _, value := range inter.list {
 		//Execute(Session *Session,Request *http.Request) Result
 
-		bo,result:= value.Execute(c.Context.Session,c.Context.Request,c.Context.Response)
+		bo,result:= value.Execute(c.Context)
 		if bo == false {
 			return false,result
 		}
