@@ -192,7 +192,7 @@ func (c *BaseController) AddHandler(_function function) {
 	}
 
 	_pattern := c.Root +"/"+ _function.RoutePath
-	key:=_function.Method+","+delRepeatAll(_pattern, "/", "/")
+	key:=_function.Method+","+delRepeatAll(_pattern, "/")
 
 	if c.RequestMapping[key]!=nil{
 		tool.Trace(key,"已经存在，将被替换成新的方法")
@@ -311,13 +311,17 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	result.Apply(context)
 }
 
-func delRepeatAll(src string, repeat string, new string) string {
-	reg := regexp.MustCompile("(" + repeat + "){2,}")
+func delRepeatAll(src string, new string) string {
+	reg := regexp.MustCompile("(\\/)+")
 	return reg.ReplaceAllString(src, new)
 }
+/*
+RoutePath 定义的路由
+Path 用户路由
+*/
 func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
-	_RoutePath := delRepeatAll(RoutePath, "/", "/")
-	_Path := delRepeatAll(Path, "/", "/")
+	_RoutePath := delRepeatAll(RoutePath, "/")
+	_Path := delRepeatAll(Path, "/")
 
 	mRoutePaths := strings.Split(_RoutePath, "/")
 	mPaths := strings.Split(_Path, "/")
@@ -333,7 +337,7 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 		if strings.Contains(value, ":") {
 			mapData[value[1:]] = mPaths[index]
 		} else {
-			if strings.EqualFold(mRoutePaths[index], mPaths[index]) {
+			if strings.EqualFold(mRoutePaths[index], mPaths[index]){
 
 			} else {
 				return false, nil
@@ -346,11 +350,9 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 }
 
 func fixPath(path string) string {
-	_path:=delRepeatAll(path, "/", "/")
-
+	_path:=delRepeatAll(path, "/")
 	/*if strings.EqualFold(string(_path[0]),"/"){
 		_path =string(_path[1:])
 	}*/
-
 	return _path
 }

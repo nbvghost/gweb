@@ -2,20 +2,19 @@ package main
 
 import (
 	"github.com/nbvghost/gweb"
-	"net/http"
 	"net/url"
 )
 //拦截器
 type InterceptorManager struct {
 }
 //拦截器 方法，如果 允许登陆 返回true
-func (this InterceptorManager) Execute(Session *gweb.Session,Request *http.Request,Response http.ResponseWriter)(bool,gweb.Result) {
-	if Session.Attributes.Get("admin") == nil { //判断当前 session 信息
+func (this InterceptorManager) Execute(context *gweb.Context)(bool,gweb.Result) {
+	if context.Session.Attributes.Get("admin") == nil { //判断当前 session 信息
 		redirect := "" // 跳转地址
-		if len(Request.URL.Query().Encode()) == 0 {
-			redirect = Request.URL.Path
+		if len(context.Request.URL.Query().Encode()) == 0 {
+			redirect = context.Request.URL.Path
 		} else {
-			redirect = Request.URL.Path + "?" + Request.URL.Query().Encode()
+			redirect = context.Request.URL.Path + "?" + context.Request.URL.Query().Encode()
 		}
 		//http.Redirect(Response, Request, "/account/login?redirect="+url.QueryEscape(redirect), http.StatusFound)
 		return false,&gweb.RedirectToUrlResult{Url:"/account/login?redirect="+url.QueryEscape(redirect)}
