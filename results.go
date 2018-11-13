@@ -73,6 +73,8 @@ func (r *HTMLResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
+
+
 	b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path))
 	if err!=nil{
 
@@ -114,6 +116,17 @@ func (r *HTMLResult) Apply(context *Context) {
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 
+
+	/*buffer:= &bytes.Buffer{}
+	encoder:= json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+
+	err=encoder.Encode(data)
+	//return buffer.Bytes(), err
+	//b, err = json.Marshal(r.Data)
+	b = buffer.Bytes()*/
+
+
 	t.Execute(context.Response, data)
 }
 
@@ -142,6 +155,7 @@ func (r *JsonResult) Apply(context *Context) {
 
 	context.Response.WriteHeader(http.StatusOK)
 	context.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
+	//context.Response.Header().Add("Content-Type", "application/json")
 	context.Response.Write(b)
 }
 

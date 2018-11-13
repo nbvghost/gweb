@@ -9,6 +9,7 @@ type mConfiger struct {
 	JsonDataPath      string `json:"JsonDataPath"`
 	HttpPort          string `json:"HttpPort"`
 	HttpsPort         string `json:"HttpsPort"`
+	Debug         bool `json:"Debug"`
 	Domain         string `json:"Domain"`
 	ViewSuffix        string `json:"ViewSuffix"`
 	ViewActionMapping bool   `json:"ViewActionMapping"`

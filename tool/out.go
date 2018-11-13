@@ -1,18 +1,22 @@
 package tool
 
 import (
+	"github.com/nbvghost/gweb/conf"
 	"log"
 	"runtime"
 )
 
 func Trace(v ...interface{}) {
 	_, file, line, _ := runtime.Caller(1)
-	//util.Trace(funcName,file,line,ok)
-	for _,va:=range v{
-		if va != nil {
-			log.Println(file, line, va)
+	if conf.Config.Debug{
+		//util.Trace(funcName,file,line,ok)
+		for _,va:=range v{
+			if va != nil {
+				log.Println(file, line, va)
+			}
 		}
 	}
+
 }
 
 func CheckError(err error) {

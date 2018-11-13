@@ -2,18 +2,21 @@ package gweb
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/nbvghost/gweb/conf"
+	"github.com/nbvghost/gweb/tool"
 	"io/ioutil"
 	"net/http"
-	"time"
-	"fmt"
-	"github.com/nbvghost/gweb/tool"
-	"github.com/nbvghost/gweb/conf"
 	_ "net/http/pprof"
-	"strings"
-	"os"
 	"net/url"
+	"os"
+	"strings"
+	"time"
 )
 func init() {
+
+
+
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
 	content, err := ioutil.ReadFile("gweb.json")
 	if err != nil {

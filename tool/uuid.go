@@ -8,10 +8,22 @@ import (
 	"io"
 	"math"
 	rand2 "math/rand"
+	"net"
 	"strconv"
 	"time"
 )
 
+var hardwareAddrs=""
+func init()  {
+	interfaces, sdfsdfsd := net.Interfaces()
+	CheckError(sdfsdfsd)
+	for _, inter := range interfaces {
+		//fmt.Println(inter.Name)
+		mac := inter.HardwareAddr //获取本机MAC地址
+		//fmt.Println("MAC = ", mac)
+		hardwareAddrs=hardwareAddrs+mac.String()
+	}
+}
 func UUID() string {
 	rander := rand.Reader
 	uuid := make([]byte, 64)
@@ -21,9 +33,10 @@ func UUID() string {
 
 	t := base64.URLEncoding.EncodeToString(uuid)
 
-	t = t + strconv.FormatInt(time.Now().UnixNano(), 10) + strconv.FormatInt(rand2.Int63n(math.MaxInt64), 10)
-	//fmt.Println(t)
+	_ranSource:=rand2.New(rand2.NewSource(time.Now().UnixNano()))
 
+	t = hardwareAddrs+t + strconv.FormatInt(time.Now().UnixNano(), 10) + strconv.FormatInt(_ranSource.Int63n(math.MaxInt64), 10)
+	//fmt.Println(t)
 	h := md5.New()
 	h.Write([]byte(t))
 	return hex.EncodeToString(h.Sum(nil))
