@@ -153,8 +153,8 @@ func (r *JsonResult) Apply(context *Context) {
 		return
 	}
 
-	context.Response.WriteHeader(http.StatusOK)
 	context.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
+	context.Response.WriteHeader(http.StatusOK)
 	//context.Response.Header().Add("Content-Type", "application/json")
 	context.Response.Write(b)
 }
@@ -164,18 +164,31 @@ type TextResult struct {
 }
 
 func (r *TextResult) Apply(context *Context) {
+
+	context.Response.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
-	context.Response.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	context.Response.Write([]byte(r.Data))
 }
 
+type JavaScriptResult struct {
+	Data string
+}
+
+func (r *JavaScriptResult) Apply(context *Context) {
+
+
+	context.Response.Header().Add("Content-Type", "application/javascript; charset=utf-8")
+	context.Response.WriteHeader(http.StatusOK)
+	context.Response.Write([]byte(r.Data))
+
+}
 type XMLResult struct {
 	Data string
 }
 
 func (r *XMLResult) Apply(context *Context) {
+	context.Response.Header().Set("Content-Type", "text/xml; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
-	context.Response.Header().Set("Content-Type", "text/xml;charset=utf-8")
 	context.Response.Write([]byte(r.Data))
 }
 

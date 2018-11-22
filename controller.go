@@ -2,6 +2,7 @@ package gweb
 
 import (
 	"errors"
+	"fmt"
 	"github.com/nbvghost/gweb/conf"
 	"net/http"
 	"reflect"
@@ -208,13 +209,22 @@ func (c *BaseController) AddHandler(_function function) {
 //	_pattern := c.Root +"/"+ pattern
 //	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
 //}
-func (c *BaseController) doAction(path string, context *Context) Result {
+func (c *BaseController) doAction(context *Context) Result {
+	path:=context.Request.URL.Path
+	rowUrl:=context.Request.URL.String()
+	fmt.Println(rowUrl)
 
 	var f *function
 	var result Result
 	Method := context.Request.Method
 
-	if strings.Contains(path, ":") == true  ||strings.Contains(path, ",") == true {
+	//'|and|exec|insert|select|delete|update|count|*|%|chr|mid|master|truncate|char|declare|;|or|-|+|,
+	if strings.Contains(rowUrl, ":") == true  ||
+		strings.Contains(rowUrl, ",") == true ||
+		strings.Contains(rowUrl, ";") == true ||
+		strings.Contains(rowUrl, "+") == true ||
+		strings.Contains(rowUrl, "-") == true ||
+		strings.Contains(rowUrl, "*") == true	{
 		return &ErrorResult{errors.New("地址:(" + path + ")不允许包含有':'")}
 	} else {
 		if c.RequestMapping["ALL,"+path] != nil {
@@ -307,7 +317,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	result = c.doAction(r.URL.Path, context)
+	result = c.doAction(context)
 	result.Apply(context)
 }
 
@@ -320,33 +330,62 @@ RoutePath 定义的路由
 Path 用户路由
 */
 func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
+
 	_RoutePath := delRepeatAll(RoutePath, "/")
 	_Path := delRepeatAll(Path, "/")
 
 	mRoutePaths := strings.Split(_RoutePath, "/")
 	mPaths := strings.Split(_Path, "/")
 
-	mapData := make(map[string]string)
+	pathData := make(map[string]string)
 
+	fmt.Println("----------")
+	//两个目录级别要一样。
 	if len(mRoutePaths) != len(mPaths) {
-		return false, nil
+		return false, pathData
 	}
 
-	for index, value := range mRoutePaths {
+	re,err:=regexp.Compile("\\{(.*?)+\\}")
+	tool.CheckError(err)
 
-		if strings.Contains(value, ":") {
-			mapData[value[1:]] = mPaths[index]
-		} else {
-			if strings.EqualFold(mRoutePaths[index], mPaths[index]){
 
-			} else {
-				return false, nil
-			}
+	Submatchs:=re.FindAllStringSubmatch(_RoutePath,-1)
+	//SubmatchIndexs:=re.FindAllStringSubmatchIndex(_RoutePath,-1)
+	if len(Submatchs)==0{
+		return false, pathData
+	}
+
+	//fmt.Println(Submatchs,"Submatchs")
+
+
+	paths:=re.Split(_RoutePath,-1)
+	//fmt.Println(paths)
+
+	//lastEndIndex:=0
+	//"sdfsd/dfd5f4ds_dsfdsf/sdf/dfdf_sd/dfsdsfds-dfdsfdf-dfdf/f"
+	//"sdfsd/{dfdsfs}_dsfdsf/{DFdfd}/dfdf_{sdfdsfsdf}/{dfdsfddd}-dfds{fd}-{jk}/f"
+	varNameIndex:=0
+	for index:=range paths {
+		//_Path=paths[index]
+		dfd:=strings.Index(_Path,paths[index])
+		if dfd>0{
+
+			//fmt.Println("键=值",string(Submatchs[varNameIndex][1])+"="+string(_Path[0:dfd]))
+			pathData[string(Submatchs[varNameIndex][1])]=string(_Path[0:dfd])
+			varNameIndex++
+		}else if dfd<0{
+			return false, pathData
 		}
 
-	}
+		_Path=string(_Path[dfd+len(paths[index]):])
 
-	return true, mapData
+	}
+	if strings.EqualFold(_Path,"")==false{
+		//varNameIndex++
+		//fmt.Println("键=值",string(Submatchs[varNameIndex][1])+"="+string(_Path))
+		pathData[string(Submatchs[varNameIndex][1])]=_Path
+	}
+	return true, pathData
 }
 
 func fixPath(path string) string {
