@@ -1,17 +1,18 @@
-package tool
+package collections
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"strings"
 )
 
-type ListString struct {
-	Collection []string
+type ListInterface struct {
+	Collection []interface{}
 	SortFunc   func(i, j int) bool
 }
 
-func (list *ListString) Shift() string {
+func (list *ListInterface) Shift() interface{} {
 	old := (*list).Collection
 	n := len(old)
 	if n == 0 {
@@ -21,7 +22,7 @@ func (list *ListString) Shift() string {
 	(*list).Collection = old[1:]
 	return x
 }
-func (list *ListString) Pop() string {
+func (list *ListInterface) Pop() interface{} {
 	old := (*list).Collection
 	n := len(old)
 	if n == 0 {
@@ -31,51 +32,51 @@ func (list *ListString) Pop() string {
 	(*list).Collection = old[0 : n-1]
 	return x
 }
-func (list *ListString) String() string {
+func (list *ListInterface) String() string {
 	var txt = ""
 	for _, value := range list.Collection {
-		txt = txt + "," + value
+		txt = txt + "," + fmt.Sprint(value)
 	}
 	return txt
 }
-func (list *ListString) Append(elems string) {
+func (list *ListInterface) Append(elems interface{}) {
 
 	list.Collection = append(list.Collection, elems)
 }
-func (list *ListString) Len() int {
+func (list *ListInterface) Len() int {
 	return len(list.Collection)
 }
-func (list *ListString) Less(i, j int) bool {
+func (list *ListInterface) Less(i, j int) bool {
 	return list.SortFunc(i, j)
 }
-func (list *ListString) Swap(i, j int) {
+func (list *ListInterface) Swap(i, j int) {
 	var temp = list.Collection[i]
 	list.Collection[i] = list.Collection[j]
 	list.Collection[j] = temp
 }
-func (list *ListString) SortL() {
+func (list *ListInterface) SortL() {
 	list.SortFunc = func(i, j int) bool {
-		return list.Collection[i] < list.Collection[j]
+		return fmt.Sprint(list.Collection[i]) < fmt.Sprint(list.Collection[j])
 	}
 
 	sort.Sort(list)
 }
-func (list *ListString) Join(fix string) string {
+func (list *ListInterface) Join(fix string) string {
 	var txt = ""
 	for _, value := range list.Collection {
 		if strings.EqualFold(txt, "") {
-			txt = value
+			txt = fmt.Sprint(value)
 		} else {
-			txt = txt + fix + (value)
+			txt = txt + fix + fmt.Sprint(value)
 		}
 
 	}
 	return txt
 }
-func (list *ListString) SortH() {
+func (list *ListInterface) SortH() {
 	list.SortFunc = func(i, j int) bool {
-		a := list.Collection[i]
-		b := list.Collection[j]
+		a := fmt.Sprint(list.Collection[i])
+		b := fmt.Sprint(list.Collection[j])
 		if a[0] > b[0] {
 			return true
 		} else if a[0] == b[0] {
@@ -105,7 +106,6 @@ func (list *ListString) SortH() {
 		} else {
 			return false
 		}
-		//return this.Collection[i].(string) > this.Collection[j].(string)
 	}
 	sort.Sort(list)
 }
