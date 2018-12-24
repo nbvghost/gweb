@@ -252,27 +252,7 @@ func TestBaseController_AddHandler(t *testing.T) {
 	}
 }
 
-func TestBaseController_doAction(t *testing.T) {
-	type args struct {
-		path    string
-		context *Context
-	}
-	tests := []struct {
-		name string
-		c    *BaseController
-		args args
-		want Result
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.c.doAction(tt.args.path, tt.args.context); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("BaseController.doAction() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+
 
 func TestBaseController_ServeHTTP(t *testing.T) {
 	type args struct {
@@ -317,7 +297,7 @@ func Test_delRepeatAll(t *testing.T) {
 func Benchmark_getPathParams(b *testing.B) {
 
 	for i:=0;i<b.N;i++{
-		got, got1 := getPathParams("/sdfsd/{dfdsfs}_dsfdsf/{DFdfd}/dfdf_{sdfdsfsdf}/{dfdsfddd}-dfds{fd}-{jk}/f{dfd}","/sdfsd/dfd5f4ds_dsfdsf/sdf/dfdf_sd/dfsdsfds-dfdsfdf-dfdf/fsdfsd")
+		got, got1 := getPathParams("/platform/{ChannelID}/{ChannleGameID}/gam","/platform/sandbox/1303/game")
 		//   20000	     67015 ns/op
 		//   10000	    106824 ns/op
 		fmt.Println(got,got1)

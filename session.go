@@ -23,21 +23,23 @@ type Session struct {
 
 func (s *sessionMap) DelectSession(k string) {
 	s.Lock()
-	delete(s.Data, k)
 	defer s.Unlock()
+	delete(s.Data, k)
+
 	//db.NotifyAll(&db.Message{db.Socket_Type_2_STC,k})
 }
 
 func (s *sessionMap) addSession(GLSESSIONID string, session *Session) {
 	s.Lock()
-	s.Data[GLSESSIONID] = session
 	defer s.Unlock()
+	s.Data[GLSESSIONID] = session
 	//db.NotifyAll(&db.Message{db.Socket_Type_1_STC,session})
 }
 func (s *sessionMap) GetSession(GLSESSIONID string) *Session {
 	s.RLock()
-	session := s.Data[GLSESSIONID]
 	defer s.RUnlock()
+	session := s.Data[GLSESSIONID]
+
 	//db.NotifyAll(&db.Message{db.Socket_Type_1_STC,session})
 	return session
 }

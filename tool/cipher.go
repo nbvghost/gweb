@@ -107,6 +107,10 @@ func Md5ByString(valeu string) string {
 	md5Str := hex.EncodeToString(ddf.Sum(nil))
 	return strings.ToUpper(md5Str)
 }
+func Md5By16String(valeu string) string {
+	ddf := Md5ByString(valeu)
+	return strings.ToUpper(string(ddf[8:24]))
+}
 func Md5ByBytes(valeu []byte) string {
 	ddf := md5.New()
 	ddf.Write(valeu)

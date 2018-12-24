@@ -1,11 +1,11 @@
 package gweb
 
 import (
-	"net/http"
-
-	"time"
-	"github.com/nbvghost/gweb/tool"
 	"github.com/nbvghost/gweb/conf"
+	"github.com/nbvghost/gweb/tool"
+	"net/http"
+	_ "net/http/pprof"
+	"time"
 )
 
 func StartServer(HTTP, HTTPS bool) {

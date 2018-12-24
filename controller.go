@@ -219,14 +219,17 @@ func (c *BaseController) doAction(context *Context) Result {
 	Method := context.Request.Method
 
 	//'|and|exec|insert|select|delete|update|count|*|%|chr|mid|master|truncate|char|declare|;|or|-|+|,
-	if strings.Contains(rowUrl, ":") == true  ||
+	/*if strings.Contains(rowUrl, ":") == true  ||
 		strings.Contains(rowUrl, ",") == true ||
 		strings.Contains(rowUrl, ";") == true ||
 		strings.Contains(rowUrl, "+") == true ||
 		strings.Contains(rowUrl, "-") == true ||
 		strings.Contains(rowUrl, "*") == true	{
 		return &ErrorResult{errors.New("地址:(" + path + ")不允许包含有':'")}
-	} else {
+	}*/
+	if false {
+
+	}else {
 		if c.RequestMapping["ALL,"+path] != nil {
 
 			//fmt.Println(path,path)
@@ -292,7 +295,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil || strings.EqualFold(cookie.Value,"") {
 
 		GLSESSIONID = tool.UUID()
-		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/"})
+		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/",MaxAge:int(30*time.Minute)})
 		session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
 		Sessions.addSession(GLSESSIONID, session)
 
@@ -345,10 +348,12 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 		return false, pathData
 	}
 
+
 	re,err:=regexp.Compile("\\{(.*?)+\\}")
 	tool.CheckError(err)
 
 
+	//获取地址参数
 	Submatchs:=re.FindAllStringSubmatch(_RoutePath,-1)
 	//SubmatchIndexs:=re.FindAllStringSubmatchIndex(_RoutePath,-1)
 	if len(Submatchs)==0{
@@ -381,9 +386,15 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 
 	}
 	if strings.EqualFold(_Path,"")==false{
+		fmt.Println("---------Path------------------")
+		fmt.Println(_Path)
+		fmt.Println(varNameIndex)
+		fmt.Println(Submatchs)
 		//varNameIndex++
 		//fmt.Println("键=值",string(Submatchs[varNameIndex][1])+"="+string(_Path))
-		pathData[string(Submatchs[varNameIndex][1])]=_Path
+		if varNameIndex<=len(Submatchs)-1{
+			pathData[string(Submatchs[varNameIndex][1])]=_Path
+		}
 	}
 	return true, pathData
 }
