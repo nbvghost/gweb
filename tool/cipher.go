@@ -3,10 +3,13 @@ package tool
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/md5"
 	"crypto/rand"
-		"encoding/hex"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
+
 	"io"
 	"strings"
 	"strconv"
@@ -100,7 +103,24 @@ func CipherEncrypterData(source string) string {
 	str := CipherEncrypter(public_PassWord, source)
 	return str
 }
+func HMACSha1(text,key string) []byte  {
+	keyByte := []byte(key)
+	mac := hmac.New(sha1.New, keyByte)
+	mac.Write([]byte(text))
+	return mac.Sum(nil)
+}
+func Sha1ByBytes(value []byte) string  {
+	sha1Sign := sha1.New()
+	//fmt.Println(list.Join("|") + "|cd99858d693d38104e7df5c7f771f474")
+	sha1Sign.Write(value)
+	mySign := hex.EncodeToString(sha1Sign.Sum(nil))
+	return strings.ToUpper(mySign)
+}
 
+func Sha1ByString(value string) string  {
+	mySign := Sha1ByBytes([]byte(value))
+	return mySign
+}
 func Md5ByString(valeu string) string {
 	ddf := md5.New()
 	ddf.Write([]byte(valeu))

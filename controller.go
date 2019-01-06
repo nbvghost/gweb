@@ -498,10 +498,10 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 
 	}
 	if strings.EqualFold(_Path,"")==false{
-		fmt.Println("---------Path------------------")
-		fmt.Println(_Path)
-		fmt.Println(varNameIndex)
-		fmt.Println(Submatchs)
+		//fmt.Println("---------Path------------------")
+		//fmt.Println(_Path)
+		//fmt.Println(varNameIndex)
+		//fmt.Println(Submatchs)
 		//varNameIndex++
 		//fmt.Println("键=值",string(Submatchs[varNameIndex][1])+"="+string(_Path))
 		if varNameIndex<=len(Submatchs)-1{
