@@ -144,6 +144,9 @@ func (c *BaseController) NewController(path string, ic IController) {
 		path = path + "/"
 
 	}
+	if validateRoutePath(path)==false{
+		return
+	}
 	ic.Apply()
 	http.Handle(path,ic)
 
@@ -175,10 +178,14 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	}
 	//fmt.Println(isubc)
 	//fmt.Println("----")
+	if validateRoutePath(path)==false{
+		return
+	}
 
 	isubc.Apply()
 	http.Handle(path,isubc)
 }
+
 ///func(context *Context) Result
 func (c *BaseController) AddHandler(_function function) {
 	c.Lock()
@@ -193,6 +200,9 @@ func (c *BaseController) AddHandler(_function function) {
 	}
 
 	_pattern := c.Root +"/"+ _function.RoutePath
+	if validateRoutePath(_pattern)==false{
+		return
+	}
 	key:=_function.Method+","+delRepeatAll(_pattern, "/")
 
 	if c.RequestMapping[key]!=nil{
@@ -328,29 +338,131 @@ func delRepeatAll(src string, new string) string {
 	reg := regexp.MustCompile("(\\/)+")
 	return reg.ReplaceAllString(src, new)
 }
+func validateRoutePath(RoutePath string) bool {
+	re,err:=regexp.Compile("^[0-9a-zA-Z_\\/\\{\\}]+$")
+	tool.CheckError(err)
+
+	if re.MatchString(RoutePath)==false{
+		panic("路径:"+RoutePath+":不允许含有0-9a-zA-Z/{}之外的字符")
+		return false
+	}
+	routePaths := strings.Split(RoutePath, "/")
+
+	rea,err:=regexp.Compile("\\{[0-9a-zA-Z_]+\\}")
+	tool.CheckError(err)
+	reb,err:=regexp.Compile("^\\{[0-9a-zA-Z_]+\\}$")
+	tool.CheckError(err)
+
+	for index:=range routePaths{
+
+		if strings.Count(routePaths[index],"{")!=strings.Count(routePaths[index],"}"){
+			panic("路径:"+RoutePath+":{或}个数不匹配")
+			return false
+		}
+
+
+		if rea.MatchString(routePaths[index]){
+			if reb.MatchString(routePaths[index]){
+				 continue
+			}else{
+				panic("路径:"+RoutePath+"中"+routePaths[index]+"，只有一个{paramName}参数形式")
+				return  false
+			}
+		}
+	}
+
+	return true
+}
 /*
 RoutePath 定义的路由
 Path 用户路由
 */
 func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
-
+	result:=make(map[string]string)
 	_RoutePath := delRepeatAll(RoutePath, "/")
 	_Path := delRepeatAll(Path, "/")
 
 	mRoutePaths := strings.Split(_RoutePath, "/")
 	mPaths := strings.Split(_Path, "/")
 
-	pathData := make(map[string]string)
 
-	fmt.Println("----------")
 	//两个目录级别要一样。
 	if len(mRoutePaths) != len(mPaths) {
-		return false, pathData
+		return false, result
 	}
-
 
 	re,err:=regexp.Compile("\\{(.*?)+\\}")
 	tool.CheckError(err)
+
+	for index:=range mRoutePaths{
+
+		haveParams:=re.MatchString(mRoutePaths[index])
+		if haveParams {
+			//有参数
+
+			//获取地址参数
+			Submatchs:=re.FindAllStringSubmatch(mRoutePaths[index],-1)
+			dfd:=re.Split(mRoutePaths[index],-1)//不是参数的文本
+			//fmt.Println("--------",mRoutePaths[index],dfd,Submatchs)
+
+			subPath:=mPaths[index]
+			//var ars []string
+
+			//顺45435435dsf吴dsf43543543dfsgdfs清sdfdsfds
+			var kindex =0
+			var pIndex =0
+			for subIndex:=range dfd{
+
+
+				kindex=strings.Index(subPath,string(dfd[subIndex]))
+
+				value:=string(subPath[0:kindex])
+				//fmt.Println("keywork",value)
+				if !strings.EqualFold(value,""){
+					item:=Submatchs[pIndex]
+					result[item[1]]=value
+					pIndex++
+				}
+
+				subPath=string(subPath[kindex+len(dfd[subIndex]):])
+				//fmt.Println("++++++++++",string(dfd[subIndex]))
+				//fmt.Println("//////////",subPath)
+
+			}
+
+			if len(subPath)-1>=kindex{
+				value:=string(subPath[kindex:])
+				//fmt.Println("keywork",value)
+				if !strings.EqualFold(value,""){
+					item:=Submatchs[pIndex]
+					result[item[1]]=value
+					pIndex++
+				}
+			}
+
+
+
+		}else{
+			//没有参数
+			if !strings.EqualFold(mRoutePaths[index],mPaths[index]){
+
+				//return true, pathData
+				return false, result
+			}
+		}
+	}
+
+
+	//fmt.Println(result)
+
+	return true, result
+
+
+	/*fmt.Println("----------")
+
+
+
+
 
 
 	//获取地址参数
@@ -396,7 +508,7 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 			pathData[string(Submatchs[varNameIndex][1])]=_Path
 		}
 	}
-	return true, pathData
+	return true, pathData*/
 }
 
 func fixPath(path string) string {

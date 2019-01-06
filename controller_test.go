@@ -296,13 +296,22 @@ func Test_delRepeatAll(t *testing.T) {
 
 func Benchmark_getPathParams(b *testing.B) {
 
+
 	for i:=0;i<b.N;i++{
-		got, got1 := getPathParams("/platform/{ChannelID}/{ChannleGameID}/gam","/platform/sandbox/1303/game")
+		//got, got1 := getPathParams("/platfdfsdsfdsorm/{dsfdsfds}顺{ChannelID}吴{Dfdfd}清{sdfdsf}/1303/game","/platfdfsdsfdsorm/sdfdsfdsf顺45435435dsf吴dsf43543543dfsgdfs清sdfsdfds/1303/game")
+		//got, got1 := getPathParams("{dsfdsfds}顺{ChannelID}吴{Dfdfd}清{sdfdsf}","sdfdsfdsf顺45435435dsf吴dsf43543543dfsgdfs清sdfsdfds")
+		//got, got1 := getPathParams("fsdg{dsfdsfds}sdafsda","fsdgfdafsdafsdafsda")
+		fmt.Println(getPathParams("/{sfsdfds}/{dfds}","/雷克萨反对sdfdssdfdsffdsfsdfsf/sad呆困运输成本吵过架基材"))
 		//   20000	     67015 ns/op
 		//   10000	    106824 ns/op
-		fmt.Println(got,got1)
-
+		//fmt.Println(got,got1)
+		//fmt.Println("--------------------------")
 	}
+}
+func Test_validateRoutePath(t *testing.T) {
+
+	fmt.Println(validateRoutePath("/{ds}{ds}/"))
+
 }
 func Test_getPathParams(t *testing.T) {
 	type args struct {
