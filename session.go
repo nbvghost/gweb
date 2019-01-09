@@ -1,8 +1,8 @@
 package gweb
 
 import (
-	"sync"
 	"net/url"
+	"sync"
 )
 
 var Sessions = &sessionMap{Data: make(map[string]*Session)}
@@ -13,11 +13,11 @@ type sessionMap struct {
 }
 type Session struct {
 	sync.RWMutex
-	Attributes  *Attributes
-	CreateTime  int64
-	ActionTime  int64
-	Operation   int64
-	GLSESSIONID string
+	Attributes     *Attributes
+	CreateTime     int64
+	ActionTime     int64
+	Operation      int64
+	GLSESSIONID    string
 	LastRequestURL *url.URL
 }
 

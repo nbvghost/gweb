@@ -13,15 +13,16 @@ import (
 	"time"
 )
 
-var hardwareAddrs=""
-func init()  {
+var hardwareAddrs = ""
+
+func init() {
 	interfaces, sdfsdfsd := net.Interfaces()
 	CheckError(sdfsdfsd)
 	for _, inter := range interfaces {
 		//fmt.Println(inter.Name)
 		mac := inter.HardwareAddr //获取本机MAC地址
 		//fmt.Println("MAC = ", mac)
-		hardwareAddrs=hardwareAddrs+mac.String()
+		hardwareAddrs = hardwareAddrs + mac.String()
 	}
 }
 func UUID() string {
@@ -31,8 +32,8 @@ func UUID() string {
 		panic(err.Error()) // rand should never fail
 	}
 	t := base64.URLEncoding.EncodeToString(uuid)
-	_ranSource:=rand2.New(rand2.NewSource(time.Now().UnixNano()))
-	t = hardwareAddrs+t + strconv.FormatInt(time.Now().UnixNano(), 10) + strconv.FormatInt(_ranSource.Int63n(math.MaxInt64), 10)
+	_ranSource := rand2.New(rand2.NewSource(time.Now().UnixNano()))
+	t = hardwareAddrs + t + strconv.FormatInt(time.Now().UnixNano(), 10) + strconv.FormatInt(_ranSource.Int63n(math.MaxInt64), 10)
 	//fmt.Println(t)
 	h := md5.New()
 	h.Write([]byte(t))

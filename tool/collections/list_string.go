@@ -27,7 +27,7 @@ func (list *ListString) Pop() string {
 	if n == 0 {
 		return ""
 	}
-	x := old[n-1]//old[n-1].([]string)[0]
+	x := old[n-1] //old[n-1].([]string)[0]
 	(*list).Collection = old[0 : n-1]
 	return x
 }

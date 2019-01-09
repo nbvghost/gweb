@@ -252,8 +252,6 @@ func TestBaseController_AddHandler(t *testing.T) {
 	}
 }
 
-
-
 func TestBaseController_ServeHTTP(t *testing.T) {
 	type args struct {
 		w http.ResponseWriter
@@ -283,7 +281,7 @@ func Test_delRepeatAll(t *testing.T) {
 		args args
 		want string
 	}{
-		// TODO: Add test cases.
+		{args:args{src:"/sdf/ds/f/dsf/ds/f",new:"/"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -296,12 +294,11 @@ func Test_delRepeatAll(t *testing.T) {
 
 func Benchmark_getPathParams(b *testing.B) {
 
-
-	for i:=0;i<b.N;i++{
+	for i := 0; i < b.N; i++ {
 		//got, got1 := getPathParams("/platfdfsdsfdsorm/{dsfdsfds}顺{ChannelID}吴{Dfdfd}清{sdfdsf}/1303/game","/platfdfsdsfdsorm/sdfdsfdsf顺45435435dsf吴dsf43543543dfsgdfs清sdfsdfds/1303/game")
 		//got, got1 := getPathParams("{dsfdsfds}顺{ChannelID}吴{Dfdfd}清{sdfdsf}","sdfdsfdsf顺45435435dsf吴dsf43543543dfsgdfs清sdfsdfds")
 		//got, got1 := getPathParams("fsdg{dsfdsfds}sdafsda","fsdgfdafsdafsdafsda")
-		fmt.Println(getPathParams("/{sfsdfds}/{dfds}","/雷克萨反对sdfdssdfdsffdsfsdfsf/sad呆困运输成本吵过架基材"))
+		fmt.Println(getPathParams("/{sfsdfds}/{dfds}", "/雷克萨反对sdfdssdfdsffdsfsdfsf/sad呆困运输成本吵过架基材"))
 		//   20000	     67015 ns/op
 		//   10000	    106824 ns/op
 		//fmt.Println(got,got1)
@@ -325,8 +322,8 @@ func Test_getPathParams(t *testing.T) {
 		want1 map[string]string
 	}{
 		//{name:"Test_getPathParams",args:args{RoutePath:"/sdfsd/{dfdsfs}_dsfdsf/{DFdfd}/dfdf_{sdfdsfsdf}/{dfdsfddd}-dfds{fd}-{jk}/f{dfd}",Path:"/sdfsd/dfd5f4ds_dsfdsf/sdf/dfdf_sd/dfsdsfds-dfdsfdf-dfdf/fsdfsd"},want:true},
-		{name:"Test_getPathParams",args:args{RoutePath:"dsfds/dd{dsfsd}",Path:"dsfds/ddsdafsdaf"},want:true},
-	}	
+		{name: "Test_getPathParams", args: args{RoutePath: "dsfds/dd{dsfsd}", Path: "dsfds/ddsdafsdaf"}, want: true},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := getPathParams(tt.args.RoutePath, tt.args.Path)

@@ -11,18 +11,18 @@ import (
 	"errors"
 
 	"io"
-	"strings"
-	"strconv"
 	"net/url"
+	"strconv"
+	"strings"
 )
 
 type Hashids struct {
-	
 }
-func (Hashids)EncodeShareKey(UserID uint64) string {
+
+func (Hashids) EncodeShareKey(UserID uint64) string {
 	return "UserID:" + strconv.Itoa(int(UserID))
 }
-func (Hashids)DecodeShareKey(ShareKey string) uint64 {
+func (Hashids) DecodeShareKey(ShareKey string) uint64 {
 	_ShareKey, _ := url.QueryUnescape(ShareKey)
 	SuperiorID, _ := strconv.ParseUint(strings.Split(_ShareKey, ":")[1], 10, 64)
 	return SuperiorID
@@ -68,13 +68,12 @@ func CipherEncrypter(tkey, tvalue string) string {
 	key := []byte(tkey)
 	plaintext := []byte(tvalue)
 
-	BlockSize:=aes.BlockSize
+	BlockSize := aes.BlockSize
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		CheckError(err)
 	}
-
 
 	// The IV needs to be unique, but not secure. Therefore it's common to
 	// include it at the beginning of the ciphertext.
@@ -103,13 +102,13 @@ func CipherEncrypterData(source string) string {
 	str := CipherEncrypter(public_PassWord, source)
 	return str
 }
-func HMACSha1(text,key string) []byte  {
+func HMACSha1(text, key string) []byte {
 	keyByte := []byte(key)
 	mac := hmac.New(sha1.New, keyByte)
 	mac.Write([]byte(text))
 	return mac.Sum(nil)
 }
-func Sha1ByBytes(value []byte) string  {
+func Sha1ByBytes(value []byte) string {
 	sha1Sign := sha1.New()
 	//fmt.Println(list.Join("|") + "|cd99858d693d38104e7df5c7f771f474")
 	sha1Sign.Write(value)
@@ -117,7 +116,7 @@ func Sha1ByBytes(value []byte) string  {
 	return strings.ToUpper(mySign)
 }
 
-func Sha1ByString(value string) string  {
+func Sha1ByString(value string) string {
 	mySign := Sha1ByBytes([]byte(value))
 	return mySign
 }

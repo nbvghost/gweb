@@ -26,7 +26,7 @@ func TestNotFindResult_Apply(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		r    *NotFindResult
+		r    *ViewActionMappingResult
 		args args
 	}{
 		// TODO: Add test cases.
