@@ -19,9 +19,12 @@ func Trace(v ...interface{}) {
 
 }
 
-func CheckError(err error) {
+func CheckError(err error) bool {
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
 		log.Println(file, line, err)
+		return true
+	}else{
+		return false
 	}
 }

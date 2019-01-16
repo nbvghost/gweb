@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -27,6 +29,16 @@ type ErrorResult struct {
 
 func (r *ErrorResult) Apply(context *Context) {
 	http.Error(context.Response, r.Error.Error(), http.StatusNotFound)
+
+}
+type SingleHostReverseProxyResult struct {
+	Target *url.URL
+}
+
+func (r *SingleHostReverseProxyResult) Apply(context *Context) {
+
+	rp:=httputil.NewSingleHostReverseProxy(r.Target)
+	rp.ServeHTTP(context.Response,context.Request)
 
 }
 /**
