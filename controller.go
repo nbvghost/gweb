@@ -190,6 +190,7 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 
 	RootField := value.FieldByName("Root")
 
+
 	//fmt.Println(RootField)
 	//fmt.Println("----")
 	if RootField.Kind() == reflect.String {
