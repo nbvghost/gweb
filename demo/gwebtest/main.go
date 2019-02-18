@@ -38,15 +38,7 @@ type IndexController struct {
 func (c *IndexController) Apply() {
 	c.Interceptors.Add(&InterceptorManager{}) //拦截器
 
-	//默认index页面
-	c.AddHandler(gweb.ALLMethod("", func(context *gweb.Context) gweb.Result {
 
-		return &gweb.RedirectToUrlResult{"index"}
-	}))
-	// 如果没有地址view里的文件时的映射
-	c.AddHandler(gweb.ALLMethod("*", func(context *gweb.Context) gweb.Result {
-		return &gweb.HTMLResult{}
-	}))
 	// 添加index地址映射
 	c.AddHandler(gweb.ALLMethod("index", func(context *gweb.Context) gweb.Result {
 		return &gweb.HTMLResult{}
@@ -85,7 +77,7 @@ type WxController struct {
 
 func (c *WxController) Apply() {
 
-	c.AddHandler(gweb.GETMethod(":id/path", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GETMethod("{id}/path", func(context *gweb.Context) gweb.Result {
 
 		user := context.Session.Attributes.Get("admin").(*User)
 
