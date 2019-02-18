@@ -339,20 +339,26 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		GLSESSIONID = tool.UUID()
 		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: int(30 * time.Minute)})
-		session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
-		Sessions.addSession(GLSESSIONID, session)
+		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(),  GLSESSIONID: GLSESSIONID}
+		Sessions.AddSession(GLSESSIONID, session)
 
 	} else {
 
 		session = Sessions.GetSession(cookie.Value)
 		if session == nil {
-			session = &Session{Attributes: &Attributes{Map: make(map[string]interface{})}, CreateTime: time.Now().Unix(), Operation: time.Now().Unix(), ActionTime: time.Now().Unix(), GLSESSIONID: cookie.Value}
+			session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(),  GLSESSIONID: cookie.Value}
 
-			Sessions.addSession(cookie.Value, session)
+			Sessions.AddSession(cookie.Value, session)
 		}
-		session.ActionTime = time.Now().Unix()
+		session.LastOperationTime = time.Now().Unix()
 	}
 	session.LastRequestURL = r.URL
+
+
+	c.Lock()
+	w.Header().Add("Server-Name",conf.Config.Name)
+	w.Header().Add("Server-Ver",conf.Config.Ver)
+	c.Unlock()
 
 	var context = &Context{Response: w, Request: r, Session: session, Data: conf.JsonData}
 	c.Context = context

@@ -17,6 +17,9 @@ type mConfiger struct {
 	TLSCertFile       string              `json:"TLSCertFile"`       //
 	TLSKeyFile        string              `json:"TLSKeyFile"`        //
 	DBUrl             string              `json:"DBUrl"`             //
+	Name             string              `json:"Name"`             //
+	Ver             string              `json:"Ver"`             //
+	SessionExpires    int64              `json:"SessionExpires"`             //
 }
 type ViewActionMapping struct {
 	ContentType string `json:"ContentType"`
@@ -25,3 +28,5 @@ type ViewActionMapping struct {
 
 var JsonData = make(map[string]interface{})
 var Config mConfiger
+
+

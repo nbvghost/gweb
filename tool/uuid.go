@@ -12,10 +12,9 @@ import (
 	"strconv"
 	"time"
 )
-
-var hardwareAddrs = ""
-
-func init() {
+var hardwareAddrs=GetHardwareAddrs()
+func GetHardwareAddrs() string {
+	hardwareAddrs:=""
 	interfaces, sdfsdfsd := net.Interfaces()
 	CheckError(sdfsdfsd)
 	for _, inter := range interfaces {
@@ -24,6 +23,8 @@ func init() {
 		//fmt.Println("MAC = ", mac)
 		hardwareAddrs = hardwareAddrs + mac.String()
 	}
+
+	return hardwareAddrs
 }
 func UUID() string {
 	rander := rand.Reader

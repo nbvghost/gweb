@@ -56,6 +56,12 @@ func init() {
 	if strings.EqualFold(conf.Config.UploadDirName, "") {
 		conf.Config.UploadDirName = "upload"
 	}
+	if strings.EqualFold(conf.Config.Name, "") {
+		conf.Config.Name = "default"
+	}
+	if strings.EqualFold(conf.Config.Ver, "") {
+		conf.Config.Ver = "0.0.0"
+	}
 
 	conf.Config.ViewDir = strings.Trim(conf.Config.ViewDir,"/")
 	conf.Config.ResourcesDir = strings.Trim(conf.Config.ResourcesDir,"/")
@@ -63,7 +69,20 @@ func init() {
 	conf.Config.UploadDir = strings.Trim(conf.Config.UploadDir,"/")
 	conf.Config.UploadDirName = strings.Trim(conf.Config.UploadDirName,"/")
 	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage,"/")
-	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage,"/")
+
+	go func() {
+		for{
+			Sessions.Data.Range(func(key, value interface{}) bool {
+				session:=value.(*Session)
+				if time.Now().Unix()-session.LastOperationTime>=conf.Config.SessionExpires && conf.Config.SessionExpires>0{
+					Sessions.DeleteSession(key.(string))
+				}
+				return true
+			})
+
+			time.Sleep(time.Second)
+		}
+	}()
 
 
 
@@ -121,16 +140,12 @@ func init() {
 
 	}()
 
-	http.HandleFunc("/file/up", fileUp)
-	http.HandleFunc("/file/load", fileLoad)
-	http.HandleFunc("/file/net/load", fileNetLoad)
-	http.HandleFunc("/file/temp/load", fileTempLoad)
 
-	http.Handle("/"+conf.Config.ResourcesDirName+"/", http.StripPrefix("/"+conf.Config.ResourcesDirName+"/", http.FileServer(http.Dir(conf.Config.ResourcesDir))))
-	http.Handle("/"+conf.Config.UploadDirName+"/", http.StripPrefix("/"+conf.Config.UploadDirName+"/", http.FileServer(http.Dir(conf.Config.UploadDir))))
-	http.Handle("/temp/", http.StripPrefix("/temp/", http.FileServer(http.Dir("temp"))))
 }
-func fileUp(writer http.ResponseWriter, request *http.Request) {
+type Static struct {
+
+}
+func (static Static)fileUp(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 	File, FileHeader, err := request.FormFile("file")
@@ -150,7 +165,7 @@ func fileUp(writer http.ResponseWriter, request *http.Request) {
 	//framework.WriteJSON(context, &framework.ActionStatus{true, "oK", base64Data})
 	//return &gweb.JsonResult{Data: &dao.ActionStatus{Success: true, Message: "ok", Data: fileName}}
 }
-func fileNetLoad(writer http.ResponseWriter, request *http.Request) {
+func (static Static)fileNetLoad(writer http.ResponseWriter, request *http.Request) {
 	url := request.URL.Query().Get("url")
 	client := http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -174,7 +189,7 @@ func fileNetLoad(writer http.ResponseWriter, request *http.Request) {
 	writer.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	writer.Write(b)
 }
-func fileLoad(writer http.ResponseWriter, request *http.Request) {
+func (static Static)fileLoad(writer http.ResponseWriter, request *http.Request) {
 	path := request.URL.Query().Get("path")
 
 	urldd, err := url.Parse(path)
@@ -185,7 +200,7 @@ func fileLoad(writer http.ResponseWriter, request *http.Request) {
 		http.Redirect(writer, request, path, http.StatusFound)
 	}
 }
-func fileTempLoad(writer http.ResponseWriter, request *http.Request) {
+func (static Static)fileTempLoad(writer http.ResponseWriter, request *http.Request) {
 	path := request.URL.Query().Get("path")
 	//fmt.Println(util.GetHost(context))
 	//return &gweb.ImageResult{FilePath: path}

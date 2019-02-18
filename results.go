@@ -417,18 +417,8 @@ func (r *HTMLResult) Apply(context *Context) {
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
 	data["data"] = conf.JsonData[path]
-	//context.Response
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
-	/*buffer:= &bytes.Buffer{}
-	encoder:= json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-
-	err=encoder.Encode(data)
-	//return buffer.Bytes(), err
-	//b, err = json.Marshal(r.Data)
-	b = buffer.Bytes()*/
-
 	t.Execute(context.Response, data)
 }
 
@@ -459,7 +449,35 @@ func (r *JsonResult) Apply(context *Context) {
 	//context.Response.Header().Add("Content-Type", "application/json")
 	context.Response.Write(b)
 }
+type HtmlPlainResult struct {
+	Data string
+}
 
+func (r *HtmlPlainResult) Apply(context *Context) {
+
+	t := template.New("default").Funcs(tool.FuncMap())
+	t, err := t.Parse(r.Data)
+	//template.Must(t.Parse(string(b)))
+	if err != nil {
+		log.Println(err)
+		t, err = template.New("").Parse(err.Error())
+	}
+
+	data := make(map[string]interface{})
+	data["session"] = context.Session.Attributes.Map
+	data["query"] = tool.QueryParams(context.Request.URL.Query())
+	data["host"] = context.Request.Host
+	data["time"] = time.Now().Unix() * 1000
+	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	context.Response.WriteHeader(http.StatusOK)
+	t.Execute(context.Response, data)
+
+
+
+	//context.Response.Header().Set("Content-Type", "text/xml; charset=utf-8")
+	//context.Response.WriteHeader(http.StatusOK)
+	//context.Response.Write([]byte(r.Data))
+}
 type TextResult struct {
 	Data string
 }
