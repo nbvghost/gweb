@@ -8,6 +8,52 @@ import (
 	"time"
 )
 
+type FileDirType int32
+
+var FileDirT FileDirType = 1
+var FileDirTemp FileDirType = 1
+
+func CreateFile(FilePath,FileName string)*os.File  {
+
+	return nil
+}
+func IsFileExist(path string) bool  {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+
+		return false
+	} else {
+		return true
+	}
+}
+func WriteTempUrlNameFile(b []byte,Url string) string {
+
+	md5Name := Md5ByString(Url)
+	var f *os.File
+
+
+	filePath := string(md5Name[0:1])
+
+	path := filePath + "/"
+	fileName := md5Name
+	fullPath := "temp/" + path
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		err = os.MkdirAll(fullPath, os.ModePerm)
+		CheckError(err)
+	}
+
+	if _, err := os.Stat(fullPath + fileName); os.IsNotExist(err) {
+
+		f, err = os.Create(fullPath + fileName) //创建文件
+		CheckError(err)
+		defer f.Close()
+		f.Write(b)
+		f.Sync()
+	} else {
+		return path + fileName
+	}
+	return path + fileName
+}
 func WriteTempFile(b []byte, ContentType string) string {
 
 	md5Name := Md5ByBytes(b)

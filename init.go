@@ -71,17 +71,19 @@ func init() {
 	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage,"/")
 
 	go func() {
-		for{
-			Sessions.Data.Range(func(key, value interface{}) bool {
-				session:=value.(*Session)
-				if time.Now().Unix()-session.LastOperationTime>=conf.Config.SessionExpires && conf.Config.SessionExpires>0{
-					Sessions.DeleteSession(key.(string))
-				}
-				return true
-			})
-
-			time.Sleep(time.Second)
+		if conf.Config.SessionExpires>0{
+			for{
+				Sessions.Range(func(key, value interface{}) bool {
+					session:=value.(*Session)
+					if time.Now().Unix()-session.LastOperationTime>=conf.Config.SessionExpires{
+						Sessions.DeleteSession(key.(string))
+					}
+					return true
+				})
+				time.Sleep(time.Second)
+			}
 		}
+
 	}()
 
 
