@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"os"
 	"strconv"
@@ -9,9 +10,10 @@ import (
 )
 
 type FileDirType int32
-
 var FileDirT FileDirType = 1
 var FileDirTemp FileDirType = 1
+
+
 
 func CreateFile(FilePath,FileName string)*os.File  {
 
@@ -39,13 +41,13 @@ func WriteTempUrlNameFile(b []byte,Url string) string {
 
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		err = os.MkdirAll(fullPath, os.ModePerm)
-		CheckError(err)
+		glog.Error(err)
 	}
 
 	if _, err := os.Stat(fullPath + fileName); os.IsNotExist(err) {
 
 		f, err = os.Create(fullPath + fileName) //创建文件
-		CheckError(err)
+		glog.Error(err)
 		defer f.Close()
 		f.Write(b)
 		f.Sync()
@@ -74,13 +76,13 @@ func WriteTempFile(b []byte, ContentType string) string {
 
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		err = os.MkdirAll(fullPath, os.ModePerm)
-		CheckError(err)
+		glog.Error(err)
 	}
 
 	if _, err := os.Stat(fullPath + fileName); os.IsNotExist(err) {
 
 		f, err = os.Create(fullPath + fileName) //创建文件
-		CheckError(err)
+		glog.Error(err)
 		defer f.Close()
 		f.Write(b)
 		f.Sync()
@@ -102,7 +104,7 @@ func WriteFile(b []byte, ContentType string) string {
 	filePath := conf.Config.UploadDir + "/" + strconv.Itoa(now.Year()) + "/" + strconv.Itoa(int(now.Month())) + "/" + strconv.Itoa(now.Day()) + "/" + md5Name[0:2]
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		err = os.MkdirAll(filePath, os.ModePerm)
-		CheckError(err)
+		glog.Error(err)
 	}
 
 	fileName := filePath + "/" + md5Name + "." + fileType
@@ -110,7 +112,7 @@ func WriteFile(b []byte, ContentType string) string {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 
 		f, err = os.Create(fileName) //创建文件
-		CheckError(err)
+		glog.Error(err)
 		defer f.Close()
 		f.Write(b)
 		f.Sync()

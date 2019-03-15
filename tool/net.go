@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"github.com/nbvghost/glog"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -68,7 +69,7 @@ func DownloadInternetImageTemp(url string, UserAgent string, Referer string) str
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
-	CheckError(err)
+	glog.Error(err)
 	return WriteTempFile(b, resp.Header.Get("Content-Type"))
 
 }
@@ -95,7 +96,7 @@ func DownloadInternetImage(url string, UserAgent string, Referer string) string 
 	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
-	CheckError(err)
+	glog.Error(err)
 	return WriteFile(b, resp.Header.Get("Content-Type"))
 
 }

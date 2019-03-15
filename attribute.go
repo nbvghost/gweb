@@ -12,6 +12,13 @@ func (att *Attributes) Put(key string, value interface{}) {
 	att._map.Store(key,value)
 	//defer att.Unlock()
 }
+
+func (att *Attributes) GetOrPut(key string, value interface{}) (actual interface{}, loaded bool) {
+	//att.Lock()
+	//att.Map[key] = value
+	return att._map.LoadOrStore(key,value)
+	//defer att.Unlock()
+}
 func (att *Attributes) GetMap() map[string]interface{} {
 	data:=make(map[string]interface{})
 

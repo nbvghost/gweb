@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"github.com/nbvghost/glog"
 )
 
 type Hashids struct {
@@ -71,7 +72,7 @@ func CipherEncrypter(tkey, tvalue string) string {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		CheckError(err)
+		glog.Error(err)
 	}
 
 	// The IV needs to be unique, but not secure. Therefore it's common to
@@ -79,7 +80,7 @@ func CipherEncrypter(tkey, tvalue string) string {
 	ciphertext := make([]byte, BlockSize+len(plaintext))
 	iv := ciphertext[:BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		CheckError(err)
+		glog.Error(err)
 	}
 
 	stream := cipher.NewCFBEncrypter(block, iv)
@@ -99,14 +100,14 @@ func CipherDecrypter(tkey string, crypter string) string {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		CheckError(err)
+		glog.Error(err)
 		return ""
 	}
 
 	// The IV needs to be unique, but not secure. Therefore it's common to
 	// include it at the beginning of the ciphertext.
 	if len(ciphertext) < aes.BlockSize {
-		CheckError(errors.New("必须是aes.BlockSize的倍数"))
+		glog.Error(errors.New("必须是aes.BlockSize的倍数"))
 		return ""
 	}
 	iv := ciphertext[:aes.BlockSize]

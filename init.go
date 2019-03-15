@@ -3,6 +3,7 @@ package gweb
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
 	"io/ioutil"
@@ -19,8 +20,8 @@ func init() {
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
 	content, err := ioutil.ReadFile("gweb.json")
 	if err != nil {
-		tool.Trace("缺少配制文件：gweb.json")
-		tool.Trace("使用默认配制：")
+		glog.Trace("缺少配制文件：gweb.json")
+		glog.Trace("使用默认配制：")
 		conf.Config.ViewDir = "view"
 
 		conf.Config.ResourcesDir = "resources"
@@ -40,7 +41,7 @@ func init() {
 
 	} else {
 		err = json.Unmarshal(content, &conf.Config)
-		tool.CheckError(err)
+		glog.Error(err)
 	}
 
 	if strings.EqualFold(conf.Config.ResourcesDir, "") {
@@ -95,7 +96,7 @@ func init() {
 	go func() {
 		mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
 		if err != nil {
-			tool.Trace("当前未使用data.json 文件")
+			glog.Trace("当前未使用data.json 文件")
 		} else {
 			fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
 		}
@@ -105,7 +106,7 @@ func init() {
 			mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
 			if err == nil {
 				err = json.Unmarshal(mJsonData, &conf.JsonData)
-				tool.CheckError(err)
+				glog.Error(err)
 			}
 			time.Sleep(time.Second * 3)
 		}
@@ -128,12 +129,12 @@ func init() {
 				for _, file := range fileNodes {
 					if time.Now().Unix() > file.ModTime().Add(time.Minute*3).Unix() {
 						err = os.Remove("temp" + "/" + v.Name() + "/" + file.Name())
-						tool.CheckError(err)
+						glog.Error(err)
 					}
 				}
 				if len(fileNodes) <= 0 {
 					err = os.Remove("temp" + "/" + v.Name())
-					tool.CheckError(err)
+					glog.Error(err)
 				}
 
 			}
@@ -143,7 +144,12 @@ func init() {
 	}()
 
 
+
+
+
 }
+
+
 type Static struct {
 
 }
@@ -151,9 +157,9 @@ func (static Static)fileUp(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 	File, FileHeader, err := request.FormFile("file")
-	tool.CheckError(err)
+	glog.Error(err)
 	b, err := ioutil.ReadAll(File)
-	tool.CheckError(err)
+	glog.Error(err)
 	defer File.Close()
 
 	fileName := tool.WriteFile(b, FileHeader.Header.Get("Content-Type"))
@@ -195,7 +201,7 @@ func (static Static)fileLoad(writer http.ResponseWriter, request *http.Request) 
 	path := request.URL.Query().Get("path")
 
 	urldd, err := url.Parse(path)
-	tool.CheckError(err)
+	glog.Error(err)
 	if strings.EqualFold(urldd.Scheme, "") && strings.EqualFold(urldd.Host, "") {
 		http.Redirect(writer, request, "/"+path, http.StatusFound)
 	} else {
