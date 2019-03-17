@@ -92,21 +92,24 @@ func init() {
 	//tool.Trace("当前配制信息：" + string(dt))
 	fmt.Printf("当前配制信息：\n%v\n", string(dt))
 
-	go func() {
+
+
+	readDataFile:= func() {
 		mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
 		if err != nil {
 			tool.Trace("当前未使用data.json 文件")
 		} else {
-			fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
+			//fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
+			err = json.Unmarshal(mJsonData, &conf.JsonData)
+			tool.CheckError(err)
 		}
+	}
+	readDataFile()
 
+
+	go func() {
 		for {
-
-			mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
-			if err == nil {
-				err = json.Unmarshal(mJsonData, &conf.JsonData)
-				tool.CheckError(err)
-			}
+			readDataFile()
 			time.Sleep(time.Second * 3)
 		}
 	}()
