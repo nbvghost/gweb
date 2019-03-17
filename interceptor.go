@@ -2,7 +2,7 @@ package gweb
 
 import (
 	"errors"
-	"github.com/nbvghost/gweb/tool"
+	"github.com/nbvghost/glog"
 	"sync"
 )
 
@@ -26,7 +26,7 @@ func (inter *Interceptors) Add(value Interceptor) {
 	if inter.Contains(value) == false {
 		inter.list = append(inter.list, value)
 	} else {
-		tool.CheckError(errors.New("已经存在"))
+		glog.Error(errors.New("已经存在"))
 	}
 }
 func (inter *Interceptors) ExecuteAll(c *BaseController) (bool, Result) {

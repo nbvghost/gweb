@@ -3,6 +3,7 @@ package gweb
 import (
 	"errors"
 	"fmt"
+	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"net/http"
 	"reflect"
@@ -133,7 +134,7 @@ func (c *BaseController) NewController(path string, ic IController) {
 		if r := recover(); r != nil {
 			//_, file, line, _ := runtime.Caller(1)
 			//log.Println(file, line, r)
-			tool.Trace(r)
+			glog.Trace(r)
 			debug.PrintStack()
 		}
 	}()
@@ -247,7 +248,7 @@ func (c *BaseController) AddHandler(_function function) {
 	//log.Println(key)
 
 	if c.RequestMapping[key] != nil {
-		tool.Trace(key, "已经存在，将被替换成新的方法")
+		glog.Trace(key, "已经存在，将被替换成新的方法")
 	}
 	c.RequestMapping[key] = &_function
 	//fmt.Println(c.RequestMapping)
@@ -315,7 +316,7 @@ func (c *BaseController) doAction(context *Context) Result {
 	} else {
 		result = f.Function(context)
 		if result == nil {
-			tool.CheckError(errors.New("Action:" + path + "-> 返回视图类型为空"))
+			glog.Error(errors.New("Action:" + path + "-> 返回视图类型为空"))
 		}
 	}
 
@@ -325,7 +326,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			tool.Trace(r)
+			glog.Trace(r)
 			debug.PrintStack()
 
 		}
@@ -379,7 +380,7 @@ func delRepeatAll(src string, new string) string {
 }
 func validateRoutePath(RoutePath string) bool {
 	re, err := regexp.Compile("^[0-9a-zA-Z_\\/\\{\\}\\.]+$")
-	tool.CheckError(err)
+	glog.Error(err)
 
 	if re.MatchString(RoutePath) == false && strings.EqualFold(RoutePath,"")==false {
 		//panic("路径:" + RoutePath + ":不允许含有0-9a-zA-Z/{}之外的字符")
@@ -389,9 +390,9 @@ func validateRoutePath(RoutePath string) bool {
 	routePaths := strings.Split(RoutePath, "/")
 
 	rea, err := regexp.Compile("\\{[0-9a-zA-Z_]+\\}")
-	tool.CheckError(err)
+	glog.Error(err)
 	reb, err := regexp.Compile("^\\{[0-9a-zA-Z_]+\\}$")
-	tool.CheckError(err)
+	glog.Error(err)
 
 	for index := range routePaths {
 
@@ -433,7 +434,7 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 	}
 
 	re, err := regexp.Compile("\\{(.*?)+\\}")
-	tool.CheckError(err)
+	glog.Error(err)
 
 	for index := range mRoutePaths {
 

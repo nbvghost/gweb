@@ -2,6 +2,7 @@ package gweb
 
 import (
 	"encoding/json"
+	"github.com/nbvghost/glog"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -265,7 +266,7 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 		b, err := ioutil.ReadFile(conf.Config.ViewDir + path)
 		if err==nil{
 			re, err := regexp.Compile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
-			tool.CheckError(err)
+			glog.Error(err)
 
 			if re.MatchString(path){
 				Groups:=re.FindAllStringSubmatch(path, -1)
@@ -309,7 +310,7 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 		context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 		context.Response.WriteHeader(http.StatusOK)
 		t, err := template.New("default").Funcs(tool.FuncMap()).Parse(string(b))
-		tool.CheckError(err)
+		glog.Error(err)
 		t.Execute(context.Response, nil)
 	}
 

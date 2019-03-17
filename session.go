@@ -20,12 +20,12 @@ type Session struct {
 	LastRequestURL *url.URL
 }
 
-func (s *SessionSafeMap) DeleteSession(k string) {
+func (s *SessionSafeMap) DeleteSession(GLSESSIONID string) {
 	//s.Lock()
 	//defer s.Unlock()
 	//delete(s.Data, k)
 	//db.NotifyAll(&db.Message{db.Socket_Type_2_STC,k})
-	s._data.Delete(k)
+	s._data.Delete(GLSESSIONID)
 }
 
 func (s *SessionSafeMap) AddSession(GLSESSIONID string, session *Session) {
