@@ -2,7 +2,6 @@ package gweb
 
 import (
 	"errors"
-	"fmt"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"net/http"
@@ -265,10 +264,8 @@ func (c *BaseController) AddHandler(_function function) {
 //}
 func (c *BaseController) doAction(context *Context) Result {
 	path := strings.TrimRight(context.Request.URL.Path, "/")
-	rowUrl := context.Request.URL.String()
-
-	fmt.Println(rowUrl)
-	fmt.Println(path)
+	//rowUrl := context.Request.URL.String()
+	glog.Debug(context.Request.URL)
 
 	var f *function
 	var result Result
