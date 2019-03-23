@@ -3,6 +3,7 @@ package gweb
 import (
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
+	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"time"
@@ -23,7 +24,7 @@ func StartServer(HTTP, HTTPS bool) {
 
 
 	if !HTTP && !HTTPS {
-		glog.Trace("选择http或https")
+		panic("选择http或https")
 		return
 	}
 
@@ -38,9 +39,10 @@ func StartServer(HTTP, HTTPS bool) {
 				WriteTimeout: 10 * time.Second,
 				//MaxHeaderBytes: 1 << 20,
 			}
-			glog.Trace("http server：" + conf.Config.HttpPort)
+
+			log.Println("gweb start at：" + conf.Config.HttpPort)
 			err := s.ListenAndServe()
-			glog.Error(err)
+			panic(err)
 		}else{
 			go func() {
 				s := &http.Server{
@@ -50,9 +52,9 @@ func StartServer(HTTP, HTTPS bool) {
 					WriteTimeout: 10 * time.Second,
 					//MaxHeaderBytes: 1 << 20,
 				}
-				glog.Trace("http server：" + conf.Config.HttpPort)
+				glog.Trace("gweb start at：" + conf.Config.HttpPort)
 				err := s.ListenAndServe()
-				glog.Error(err)
+				panic(err)
 			}()
 		}
 	}
@@ -65,9 +67,9 @@ func StartServer(HTTP, HTTPS bool) {
 			WriteTimeout: 10 * time.Second,
 			//MaxHeaderBytes: 1 << 20,
 		}
-		glog.Trace("https server：" + conf.Config.HttpsPort)
+		log.Println("gweb start at：" + conf.Config.HttpsPort)
 		err := s.ListenAndServeTLS(conf.Config.TLSCertFile, conf.Config.TLSKeyFile)
-		glog.Error(err)
+		panic(err)
 	}
 
 }
