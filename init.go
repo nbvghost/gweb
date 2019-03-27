@@ -2,7 +2,6 @@ package gweb
 
 import (
 	"encoding/json"
-
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
