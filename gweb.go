@@ -6,69 +6,55 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
-	"time"
 )
 
 
-func StartServer(HTTP, HTTPS bool) {
+func StartServer(serverMux *http.ServeMux,httpServer *http.Server, httpsServer *http.Server) {
+
+	if serverMux==nil{
+		return
+	}
+	if httpServer==nil || httpsServer==nil{
+		return
+	}
 
 	static:=Static{}
-	http.HandleFunc("/file/up", static.fileUp)
-	http.HandleFunc("/file/load", static.fileLoad)
-	http.HandleFunc("/file/net/load", static.fileNetLoad)
-	http.HandleFunc("/file/temp/load", static.fileTempLoad)
+	serverMux.HandleFunc("/file/up", static.fileUp)
+	serverMux.HandleFunc("/file/load", static.fileLoad)
+	serverMux.HandleFunc("/file/net/load", static.fileNetLoad)
+	serverMux.HandleFunc("/file/temp/load", static.fileTempLoad)
 
-	http.Handle("/"+conf.Config.ResourcesDirName+"/", http.StripPrefix("/"+conf.Config.ResourcesDirName+"/", http.FileServer(http.Dir(conf.Config.ResourcesDir))))
-	http.Handle("/"+conf.Config.UploadDirName+"/", http.StripPrefix("/"+conf.Config.UploadDirName+"/", http.FileServer(http.Dir(conf.Config.UploadDir))))
-	http.Handle("/temp/", http.StripPrefix("/temp/", http.FileServer(http.Dir("temp"))))
+	serverMux.Handle("/"+conf.Config.ResourcesDirName+"/", http.StripPrefix("/"+conf.Config.ResourcesDirName+"/", http.FileServer(http.Dir(conf.Config.ResourcesDir))))
+	serverMux.Handle("/"+conf.Config.UploadDirName+"/", http.StripPrefix("/"+conf.Config.UploadDirName+"/", http.FileServer(http.Dir(conf.Config.UploadDir))))
+	serverMux.Handle("/temp/", http.StripPrefix("/temp/", http.FileServer(http.Dir("temp"))))
 
 
-	if !HTTP && !HTTPS {
+	if httpServer==nil && httpServer==nil {
 		panic("选择http或https")
 		return
 	}
 
-	if HTTP {
+	if httpServer!=nil {
 
+		if httpsServer==nil{
 
-		if HTTPS==false{
-			s := &http.Server{
-				Addr: conf.Config.HttpPort,
-				//Handler:        http.DefaultServeMux,
-				ReadTimeout:  10 * time.Second,
-				WriteTimeout: 10 * time.Second,
-				//MaxHeaderBytes: 1 << 20,
-			}
-
-			log.Println("gweb start at：" + conf.Config.HttpPort)
-			err := s.ListenAndServe()
+			glog.Trace("gweb start at：" + httpServer.Addr)
+			err := httpServer.ListenAndServe()
 			panic(err)
 		}else{
 			go func() {
-				s := &http.Server{
-					Addr: conf.Config.HttpPort,
-					//Handler:        http.DefaultServeMux,
-					ReadTimeout:  10 * time.Second,
-					WriteTimeout: 10 * time.Second,
-					//MaxHeaderBytes: 1 << 20,
-				}
-				glog.Trace("gweb start at：" + conf.Config.HttpPort)
-				err := s.ListenAndServe()
+
+				glog.Trace("gweb start at：" + httpServer.Addr)
+				err := httpServer.ListenAndServe()
 				panic(err)
 			}()
 		}
 	}
 
-	if HTTPS {
-		s := &http.Server{
-			Addr: conf.Config.HttpsPort,
-			//Handler:        http.DefaultServeMux,
-			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
-			//MaxHeaderBytes: 1 << 20,
-		}
-		log.Println("gweb start at：" + conf.Config.HttpsPort)
-		err := s.ListenAndServeTLS(conf.Config.TLSCertFile, conf.Config.TLSKeyFile)
+	if httpsServer!=nil {
+
+		log.Println("gweb start at：" + httpsServer.Addr)
+		err := httpsServer.ListenAndServeTLS(conf.Config.TLSCertFile, conf.Config.TLSKeyFile)
 		panic(err)
 	}
 

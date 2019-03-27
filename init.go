@@ -91,7 +91,7 @@ func init() {
 
 	dt, _ := json.Marshal(conf.Config)
 	//tool.Trace("当前配制信息：" + string(dt))
-	glog.Trace("当前配制信息：\n%v\n", string(dt))
+	glog.Debugf("当前配制信息：\n%v\n", string(dt))
 
 
 
