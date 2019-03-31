@@ -14,7 +14,7 @@ func StartServer(serverMux *http.ServeMux,httpServer *http.Server, httpsServer *
 	if serverMux==nil{
 		return
 	}
-	if httpServer==nil || httpsServer==nil{
+	if httpServer==nil && httpsServer==nil{
 		return
 	}
 
