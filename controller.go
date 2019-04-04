@@ -1,6 +1,7 @@
 package gweb
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
@@ -358,7 +359,10 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server-Ver",conf.Config.Ver)
 	c.Unlock()
 
-	var context = &Context{Response: w, Request: r, Session: session, Data: conf.JsonData}
+
+	jsonData:=make(map[string]interface{})
+	json.Unmarshal([]byte(conf.JsonText),&jsonData)
+	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData}
 	c.Context = context
 	bo, result := c.Interceptors.ExecuteAll(c)
 	if bo == false {

@@ -417,7 +417,11 @@ func (r *HTMLResult) Apply(context *Context) {
 	data["params"] = r.Params
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
-	data["data"] = conf.JsonData
+
+	jsonData:=make(map[string]interface{})
+	json.Unmarshal([]byte(conf.JsonText),&jsonData)
+
+	data["data"] =jsonData
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 	t.Execute(context.Response, data)

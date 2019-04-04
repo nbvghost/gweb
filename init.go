@@ -100,14 +100,20 @@ func init() {
 			return err //glog.Trace("当前未使用data.json 文件")
 		} else {
 			//fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
-			err = json.Unmarshal(mJsonData, &conf.JsonData)
+			conf.JsonText=string(mJsonData)
+			return nil
+			//err = json.Unmarshal(mJsonData, &conf.JsonData)
 			//glog.Error(err)
-			return err
+			//return err
 		}
 	}
 	err=readDataFile()
-	glog.Trace("当前未使用data.json 文件")
-	glog.Error(err)
+	if glog.Error(err){
+		if strings.EqualFold(conf.JsonText,""){
+			glog.Trace("当前未使用data.json 文件")
+		}
+	}
+
 
 	go func() {
 		for {

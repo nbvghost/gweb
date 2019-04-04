@@ -6,6 +6,7 @@ type mConfiger struct {
 	ResourcesDir      string              `json:"ResourcesDir"`      //
 	ResourcesDirName  string              `json:"ResourcesDirName"`  //
 	UploadDirName     string              `json:"UploadDirName"`     //
+	LogDir            string              `json:"LogDir"`     //
 	DefaultPage       string              `json:"DefaultPage"`       //
 	JsonDataPath      string              `json:"JsonDataPath"`      //
 	HttpPort          string              `json:"HttpPort"`          //
@@ -27,5 +28,5 @@ type ViewActionMapping struct {
 	Extension   string `json:"Extension"`
 }
 
-var JsonData = make(map[string]interface{})
+var JsonText = ""
 var Config mConfiger

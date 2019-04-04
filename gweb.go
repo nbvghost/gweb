@@ -3,7 +3,7 @@ package gweb
 import (
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
-	"log"
+
 	"net/http"
 	_ "net/http/pprof"
 )
@@ -53,7 +53,7 @@ func StartServer(serverMux *http.ServeMux,httpServer *http.Server, httpsServer *
 
 	if httpsServer!=nil {
 
-		log.Println("gweb start at：" + httpsServer.Addr)
+		glog.Trace("gweb start at：" + httpsServer.Addr)
 		err := httpsServer.ListenAndServeTLS(conf.Config.TLSCertFile, conf.Config.TLSKeyFile)
 		panic(err)
 	}
