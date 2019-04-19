@@ -12,7 +12,7 @@ type SessionSafeMap struct {
 	_data sync.Map
 }
 type Session struct {
-	sync.RWMutex
+	//sync.RWMutex
 	Attributes     *Attributes
 	CreateTime     int64
 	GLSESSIONID    string

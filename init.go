@@ -116,10 +116,12 @@ func init() {
 
 
 	go func() {
-		for {
+		ticker:=time.NewTicker(time.Second)
+		for range ticker.C{
 			readDataFile()
-			time.Sleep(time.Second * 3)
+			//time.Sleep(time.Second * 3)
 		}
+		ticker.Stop()
 	}()
 
 	go func() {

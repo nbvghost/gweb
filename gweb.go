@@ -38,22 +38,23 @@ func StartServer(serverMux *http.ServeMux,httpServer *http.Server, httpsServer *
 
 		if httpsServer==nil{
 
-			glog.Trace("gweb start at：" + httpServer.Addr)
+			glog.Trace("gweb start http at：" + httpServer.Addr)
 			err := httpServer.ListenAndServe()
 			panic(err)
 		}else{
 			go func() {
 
-				glog.Trace("gweb start at：" + httpServer.Addr)
+				glog.Trace("gweb start http at：" + httpServer.Addr)
 				err := httpServer.ListenAndServe()
 				panic(err)
+
 			}()
 		}
 	}
 
 	if httpsServer!=nil {
 
-		glog.Trace("gweb start at：" + httpsServer.Addr)
+		glog.Trace("gweb start https at：" + httpsServer.Addr)
 		err := httpsServer.ListenAndServeTLS(conf.Config.TLSCertFile, conf.Config.TLSKeyFile)
 		panic(err)
 	}
