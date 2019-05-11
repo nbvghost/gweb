@@ -1,7 +1,6 @@
 package gweb
 
 import (
-	"encoding/json"
 	"github.com/nbvghost/glog"
 	"html/template"
 	"io/ioutil"
@@ -12,10 +11,10 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 
 	"time"
 
-	"bytes"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
 )
@@ -419,7 +418,7 @@ func (r *HTMLResult) Apply(context *Context) {
 	data["time"] = time.Now().Unix() * 1000
 
 	jsonData:=make(map[string]interface{})
-	json.Unmarshal([]byte(conf.JsonText),&jsonData)
+	tool.JsonUnmarshal([]byte(conf.JsonText),&jsonData)
 
 	data["data"] =jsonData
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -429,25 +428,32 @@ func (r *HTMLResult) Apply(context *Context) {
 
 type JsonResult struct {
 	Data interface{}
+	sync.RWMutex
 }
 
+/*func (r *JsonResult)encodeJson() (error,[]byte)  {
+	r.Lock()
+	defer r.Unlock()
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(r.Data)
+	return err,buffer.Bytes()
+}*/
 func (r *JsonResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-
-	err = encoder.Encode(r.Data)
-	//return buffer.Bytes(), err
-	//b, err = json.Marshal(r.Data)
-	b = buffer.Bytes()
-
+	b,err= tool.JsonMarshal(r.Data)
 	if err != nil {
 		(&ErrorResult{Error: err}).Apply(context)
 		return
 	}
+	//return buffer.Bytes(), err
+	//b, err = json.Marshal(r.Data)
+	//b = buffer.Bytes()
+
+
 
 	context.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)

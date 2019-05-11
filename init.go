@@ -1,7 +1,6 @@
 package gweb
 
 import (
-	"encoding/json"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
@@ -39,7 +38,7 @@ func init() {
 		conf.Config.DBUrl = ""
 
 	} else {
-		err = json.Unmarshal(content, &conf.Config)
+		err = tool.JsonUnmarshal(content, &conf.Config)
 		glog.Error(err)
 	}
 
@@ -88,7 +87,8 @@ func init() {
 
 
 
-	dt, _ := json.Marshal(conf.Config)
+
+	dt, _ := tool.JsonMarshal(conf.Config)
 	//tool.Trace("当前配制信息：" + string(dt))
 	glog.Debugf("当前配制信息：\n%v\n", string(dt))
 
@@ -175,7 +175,7 @@ func (static Static)fileUp(writer http.ResponseWriter, request *http.Request) {
 	result["Success"] = true
 	result["Message"] = "OK"
 	result["Data"] = "//" + conf.Config.Domain + "/file/load?path=" + fileName
-	rb, _ := json.Marshal(result)
+	rb, _ := tool.JsonMarshal(result)
 	writer.Write(rb)
 	//framework.WriteJSON(context, &framework.ActionStatus{true, "oK", base64Data})
 	//return &gweb.JsonResult{Data: &dao.ActionStatus{Success: true, Message: "ok", Data: fileName}}

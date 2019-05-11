@@ -3,7 +3,7 @@ package tool
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
+
 	"github.com/nbvghost/glog"
 	"html/template"
 	"os"
@@ -41,7 +41,7 @@ func DateTimeFormat(source time.Time, format string) string {
 	return source.Format(format)
 }
 func toJSON(source interface{}) string {
-	b, err := json.Marshal(source)
+	b, err := JsonMarshal(source)
 	glog.Error(err)
 	return string(b)
 }
@@ -67,13 +67,13 @@ func cipherEncrypter(source string) string {
 }
 func fromJSONToMap(source string) map[string]interface{} {
 	d := make(map[string]interface{})
-	err := json.Unmarshal([]byte(source), &d)
+	err := JsonUnmarshal([]byte(source), &d)
 	glog.Error(err)
 	return d
 }
 func fromJSONToArray(source string) []interface{} {
 	d := make([]interface{}, 0)
-	err := json.Unmarshal([]byte(source), &d)
+	err := JsonUnmarshal([]byte(source), &d)
 	glog.Error(err)
 	return d
 }
