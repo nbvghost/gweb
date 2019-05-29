@@ -38,6 +38,7 @@ type SingleHostReverseProxyResult struct {
 func (r *SingleHostReverseProxyResult) Apply(context *Context) {
 
 	rp:=httputil.NewSingleHostReverseProxy(r.Target)
+
 	rp.ServeHTTP(context.Response,context.Request)
 
 }
@@ -462,6 +463,7 @@ func (r *JsonResult) Apply(context *Context) {
 }
 type HtmlPlainResult struct {
 	Data string
+	Params map[string]interface{}
 }
 
 func (r *HtmlPlainResult) Apply(context *Context) {
@@ -479,6 +481,7 @@ func (r *HtmlPlainResult) Apply(context *Context) {
 	data["query"] = tool.QueryParams(context.Request.URL.Query())
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
+	data["params"] = r.Params
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 	t.Execute(context.Response, data)

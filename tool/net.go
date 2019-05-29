@@ -7,7 +7,52 @@ import (
 	"net/url"
 	"strings"
 )
+//Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Version/10.0 Mobile/14E304 Safari/602.1
+//Mozilla/5.0 (Linux; Android 8.0; Pixel 2 Build/OPD3.170816.012) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Mobile Safari/537.36
+//Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36
+//Mozilla/5.0 (iPad; CPU OS 11_0 like Mac OS X) AppleWebKit/604.1.34 (KHTML, like Gecko) Version/11.0 Mobile/15A5341f Safari/604.1
+func GetDeviceName(UserAgent string) string {
+	UserAgent = strings.ToLower(UserAgent)
+	//fmt.Println(UserAgent)
+	if strings.Contains(UserAgent, "iphone") {
+		//FrameworkHttp.OutHtmlFileWithPath(context,"game/web/ssc.html")
+		return "iphone"
+	}else if strings.Contains(UserAgent, "android") {
+		//FrameworkHttp.OutHtmlFileWithPath(context,"game/web/ssc.html")
+		return "android"
+	}else if strings.Contains(UserAgent, "ipad") {
+		//FrameworkHttp.OutHtmlFileWithPath(context,"game/web/ssc.html")
+		return "ipad"
+	}else if strings.Contains(UserAgent, "windows") {
+		//FrameworkHttp.OutHtmlFileWithPath(context,"game/web/ssc.html")
+		return "windows"
+	}else{
+		return "other"
+	}
+}
+func GetIP(request *http.Request) string {
+	//fmt.Println(context.Request)
+	//fmt.Println(context.Request.Header.Get("X-Forwarded-For"))
+	//fmt.Println(context.Request.RemoteAddr)
+	//Ali-Cdn-Real-Ip
 
+
+		//_IP := context.Request.Header.Get("X-Forwarded-For")
+
+	IP := strings.Split(request.Header.Get("X-Forwarded-For"), ",")[0]
+	if strings.EqualFold(IP, "") {
+		text := request.RemoteAddr
+		if strings.Contains(text, "::") {
+			IP = "0.0.0.0"
+		} else {
+			IP = strings.Split(text, ":")[0]
+		}
+	}else{
+		IP = strings.Split(IP, ":")[0]
+	}
+
+	return IP
+}
 func QueryParams(m url.Values) map[string]string {
 	data := make(map[string]string)
 	for key, value := range m {
