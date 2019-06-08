@@ -1,4 +1,4 @@
-package therad
+package thread
 
 import "runtime/debug"
 
