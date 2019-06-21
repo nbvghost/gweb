@@ -7,6 +7,7 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -132,6 +133,12 @@ func CipherEncrypterData(source string) string {
 func HMACSha1(text, key string) []byte {
 	keyByte := []byte(key)
 	mac := hmac.New(sha1.New, keyByte)
+	mac.Write([]byte(text))
+	return mac.Sum(nil)
+}
+func HMACSha256(text, key string) []byte {
+	keyByte := []byte(key)
+	mac := hmac.New(sha256.New, keyByte)
 	mac.Write([]byte(text))
 	return mac.Sum(nil)
 }
