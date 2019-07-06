@@ -461,6 +461,16 @@ func (r *JsonResult) Apply(context *Context) {
 	//context.Response.Header().Add("Content-Type", "application/json")
 	context.Response.Write(b)
 }
+
+type FileServerResult struct {
+	Dir http.Dir
+
+}
+func (fs *FileServerResult) Apply(context *Context) {
+
+	http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response,context.Request)
+
+}
 type HtmlPlainResult struct {
 	Data string
 	Params map[string]interface{}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 
@@ -105,6 +106,7 @@ func ALLMethod(RoutePath string, call func(context *Context) Result) function {
 type IController interface {
 	Apply()
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
+	addRequestMapping(key string,f *function)*ListMapping
 }
 
 /*type ISubController interface {
@@ -115,18 +117,88 @@ type BaseSubController struct {
 	Base    *BaseController
 	SubPath string
 }*/
-type BaseController struct {
+type ListMapping struct {
+	_list []*Mapping
 	sync.RWMutex
-	RequestMapping   map[string]*function
+}
+type Mapping struct {
+	Key string
+	F *function
+}
+
+func (lm *ListMapping)Range(call func(index int,e *Mapping)bool) {
+
+	for index:=range lm._list{
+
+		co:=call(index,lm._list[index])
+		if co==false{
+			break
+		}
+
+	}
+
+}
+func (lm *ListMapping)GetByKey(Key string) *Mapping {
+
+	for index,value:=range lm._list{
+		if strings.EqualFold(value.Key,Key){
+			return lm._list[index]
+		}
+	}
+	return nil
+
+}
+func (lm *ListMapping)Add(e *Mapping)  {
+	lm.Lock()
+	defer lm.Unlock()
+	if lm.GetByKey(e.Key)!=nil{
+		panic(errors.New("不允许添加相同的路由"))
+	}
+
+
+	if lm._list==nil{
+		lm._list =make([]*Mapping,0)
+	}
+
+	lm._list=append(lm._list,e)
+
+	sort.SliceStable(lm._list, func(i, j int) bool {
+		e:=lm._list[i]
+		_e:=lm._list[j]
+
+		eRs:=strings.Split(e.Key,"/")
+		_eRs:=strings.Split(_e.Key,"/")
+
+		if len(eRs)>len(_eRs){
+
+			return true
+		}else{
+			return false
+		}
+	})
+}
+type BaseController struct {
+	RequestMapping   *ListMapping //map[string]*function
 	Context          *Context
 	Root             string
 	Interceptors     Interceptors
 	ParentController *BaseController
+	sync.RWMutex
 }
-
+func (c *BaseController) addRequestMapping(key string,f *function)*ListMapping{
+	//c.Lock()
+	//defer c.Unlock()
+	//c.RequestMapping[key] =f
+	if c.RequestMapping==nil{
+		c.RequestMapping = &ListMapping{}
+	}
+	c.RequestMapping.Add(&Mapping{Key:key,F:f})
+	return c.RequestMapping
+}
 /*func (c *BaseSubController) AddHandler(pattern string, function *Function) {
 	c.Base.AddHandler("/"+c.SubPath+"/"+pattern, function)
 }*/
+
 func (c *BaseController) NewController(path string, ic IController) {
 
 	defer func() {
@@ -205,7 +277,35 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	}
 
 	isubc.Apply()
-	http.Handle(path, isubc)
+
+	key := "Get," + path
+
+	//log.Println(key)
+
+	/*if c.RequestMapping[key] != nil {
+		glog.Trace(key, "已经存在，将被替换成新的方法")
+	}*/
+	var _function function
+	_function.Method = "Get"
+	_function.RoutePath = path
+	_function.Function = func(context *Context) Result {
+
+		return &ViewActionMappingResult{}
+	}
+
+
+	//c.RequestMapping[key] = &_function
+	subMapping:=isubc.addRequestMapping(key,&_function)
+	subMapping.Range(func(index int, e *Mapping) bool {
+
+		c.addRequestMapping(e.Key,e.F)
+		return true
+	})
+
+
+
+
+	//http.Handle(path, isubc)
 
 
 }
@@ -216,11 +316,18 @@ func (c *BaseController) AddHandler(_function function) {
 		panic(errors.New("不允许有空的路由"))
 		return
 	}
-	c.Lock()
+
+
+
+
+
+	/*c.Lock()
 	defer c.Unlock()
 	if c.RequestMapping == nil {
 		c.RequestMapping = make(map[string]*function)
-	}
+	}*/
+
+
 	if strings.EqualFold(_function.RoutePath, "*") || strings.EqualFold(_function.RoutePath, "") {
 		if !strings.EqualFold(_function.Method, "ALL") {
 			//panic("路由地址为*或空，请使用ALLMethod方法，创建function")
@@ -233,7 +340,8 @@ func (c *BaseController) AddHandler(_function function) {
 
 	var _pattern =""
 
-	_function.RoutePath = strings.Trim(_function.RoutePath,"/")
+	//_function.RoutePath = strings.Trim(_function.RoutePath,"/")
+	_function.RoutePath = strings.TrimLeft(_function.RoutePath,"/")
 
 	_pattern = c.Root +  _function.RoutePath
 
@@ -246,10 +354,11 @@ func (c *BaseController) AddHandler(_function function) {
 
 	//log.Println(key)
 
-	if c.RequestMapping[key] != nil {
+	/*if c.RequestMapping[key] != nil {
 		glog.Trace(key, "已经存在，将被替换成新的方法")
-	}
-	c.RequestMapping[key] = &_function
+	}*/
+	c.addRequestMapping(key, &_function)
+	//c.RequestMapping[key] = &_function
 	//fmt.Println(c.RequestMapping)
 }
 
@@ -263,41 +372,47 @@ func (c *BaseController) AddHandler(_function function) {
 //	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
 //}
 func (c *BaseController) doAction(context *Context) Result {
-	path := strings.TrimRight(context.Request.URL.Path, "/")
+	//path := strings.TrimRight(context.Request.URL.Path, "/")
+	path := context.Request.URL.Path
 	//rowUrl := context.Request.URL.String()
-	glog.Debug(context.Request.URL)
+	glog.Debug(path)
 
 	var f *function
 	var result Result
 	Method := context.Request.Method
 
-	if c.RequestMapping["ALL,"+path] != nil {
+	if c.RequestMapping.GetByKey("ALL,"+path) != nil {
 
 		//fmt.Println(path,path)
-		f = c.RequestMapping["ALL,"+path]
+		f = c.RequestMapping.GetByKey("ALL,"+path).F
 
-	} else if c.RequestMapping[Method+","+path] != nil {
-		f = c.RequestMapping[Method+","+path]
+	} else if c.RequestMapping.GetByKey(Method+","+path) != nil {
+		f = c.RequestMapping.GetByKey(Method+","+path).F
 
 	} else {
 		//地址包括参数的方法
-		c.Lock()
-		for key, value := range c.RequestMapping {
-			keys := strings.Split(key, ",") //[Method,Path]
+
+		c.RequestMapping.Range(func(index int, e *Mapping) bool {
+
+			keys := strings.Split(e.Key, ",") //[Method,Path]
 			if su, params := getPathParams(string(keys[1]), path); su {
 				if strings.EqualFold(keys[0], "ALL") {
 					context.PathParams = params
-					f = value
-					break
+					f = e.F
+					return false
 				} else if strings.EqualFold(string(keys[0]), Method) {
 					context.PathParams = params
-					f = value
-					break
+					f = e.F
+					return false
 				}
 
 			}
-		}
-		c.Unlock()
+
+			return true
+		})
+
+
+
 
 		//是否有对应的路由
 		/*if f == nil {
@@ -428,8 +543,14 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 	mRoutePaths := strings.Split(_RoutePath, "/")
 	mPaths := strings.Split(_Path, "/")
 
+	tr:=RoutePath[len(RoutePath)-1:]
+	isDirPath:=strings.EqualFold(tr,"/")
+
 	//两个目录级别要一样。
-	if len(mRoutePaths) != len(mPaths) {
+	if len(mRoutePaths) != len(mPaths) && isDirPath==false{
+		return false, result
+	}
+	if len(mRoutePaths) > len(mPaths){
 		return false, result
 	}
 
@@ -483,6 +604,12 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 		} else {
 			//没有参数
 			if !strings.EqualFold(mRoutePaths[index], mPaths[index]) {
+				if isDirPath{
+					if len(mRoutePaths)==index+1{
+						return true, result
+					}
+
+				}
 
 				//return true, pathData
 				return false, result
