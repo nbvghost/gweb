@@ -1,6 +1,7 @@
 package gweb
 
 import (
+	"flag"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
@@ -13,10 +14,13 @@ import (
 	"time"
 )
 
+var gwebJson="gweb.json"
 func init() {
 
+	flag.StringVar(&gwebJson,"gweb","gweb.json","-gweb 指定gweb.json的位置")
+	flag.Parse()
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
-	content, err := ioutil.ReadFile("gweb.json")
+	content, err := ioutil.ReadFile(gwebJson)
 	if err != nil {
 		glog.Trace("缺少配制文件：gweb.json")
 		glog.Trace("使用默认配制：")
