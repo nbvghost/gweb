@@ -31,17 +31,19 @@ func (r *ErrorResult) Apply(context *Context) {
 	http.Error(context.Response, r.Error.Error(), http.StatusNotFound)
 
 }
+
 type SingleHostReverseProxyResult struct {
 	Target *url.URL
 }
 
 func (r *SingleHostReverseProxyResult) Apply(context *Context) {
 
-	rp:=httputil.NewSingleHostReverseProxy(r.Target)
+	rp := httputil.NewSingleHostReverseProxy(r.Target)
 
-	rp.ServeHTTP(context.Response,context.Request)
+	rp.ServeHTTP(context.Response, context.Request)
 
 }
+
 /**
 类型/子类型	扩展名
 application/envoy	evy
@@ -239,48 +241,46 @@ x-world/x-vrml	xof
 */
 type ViewActionMappingResult struct {
 }
+
 func (r *ViewActionMappingResult) Apply(context *Context) {
 
 	path := context.Request.URL.Path
 
-	if strings.EqualFold(path,"/"){
-		if strings.EqualFold(conf.Config.DefaultPage,"")==false{
-			path=path+conf.Config.DefaultPage
-			var redirectToUrlResult=&RedirectToUrlResult{Url:path}
+	if strings.EqualFold(path, "/") {
+		if strings.EqualFold(conf.Config.DefaultPage, "") == false {
+			path = path + conf.Config.DefaultPage
+			var redirectToUrlResult = &RedirectToUrlResult{Url: path}
 			redirectToUrlResult.Apply(context)
 			return
 		}
 
 	}
 
-	path = strings.TrimRight(path,"/")
-	b, err := ioutil.ReadFile(conf.Config.ViewDir + path+conf.Config.ViewSuffix)
+	path = strings.TrimRight(path, "/")
+	b, err := ioutil.ReadFile(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
 	if err != nil {
+		//不存在
 		//fmt.Println(context.Request.Header)
-
-
-
-
 
 		var haveMIME = false
 		b, err := ioutil.ReadFile(conf.Config.ViewDir + path)
-		if err==nil{
+		if err == nil {
 			re, err := regexp.Compile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
 			glog.Error(err)
 
-			if re.MatchString(path){
-				Groups:=re.FindAllStringSubmatch(path, -1)
+			if re.MatchString(path) {
+				Groups := re.FindAllStringSubmatch(path, -1)
 				//[[/fgsd_gffdgdf.txt fgsd_gffdgdf txt]]
 				//{"ContentType": "text/html","Extension":"html"}
-				Extension:=Groups[0][2]
-				for index:= range conf.Config.ViewActionMapping{
-					ce:=conf.Config.ViewActionMapping[index]
-					if strings.EqualFold(ce.Extension,Extension){
+				Extension := Groups[0][2]
+				for index := range conf.Config.ViewActionMapping {
+					ce := conf.Config.ViewActionMapping[index]
+					if strings.EqualFold(ce.Extension, Extension) {
 						context.Response.Header().Set("Content-Type", ce.ContentType+"; charset=utf-8")
 						//w.Header().Set("X-Content-Type-Options", "nosniff")
 						context.Response.WriteHeader(http.StatusOK)
 						context.Response.Write(b)
-						haveMIME =true
+						haveMIME = true
 						break
 					}
 
@@ -288,21 +288,20 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 			}
 
 		}
-		if haveMIME==false{
+		if haveMIME == false {
 
-			fi,err:=os.Stat(conf.Config.ViewDir + path)
+			fi, err := os.Stat(conf.Config.ViewDir + path)
 			//log.Println(err)
-			if err==nil && fi.IsDir(){
+			if err == nil && fi.IsDir() {
 
-				path=path+"/"+conf.Config.DefaultPage
-				var redirectToUrlResult=&RedirectToUrlResult{Url:path}
+				path = path + "/" + conf.Config.DefaultPage
+				var redirectToUrlResult = &RedirectToUrlResult{Url: path}
 				redirectToUrlResult.Apply(context)
 
-			}else{
+			} else {
 				//没有找到路由，
 				http.NotFound(context.Response, context.Request)
 			}
-
 
 		}
 
@@ -311,10 +310,12 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 		context.Response.WriteHeader(http.StatusOK)
 		t, err := template.New("default").Funcs(tool.FuncMap()).Parse(string(b))
 		glog.Error(err)
+		//data := createPageParams(context, map[string]interface{}{})
 		t.Execute(context.Response, nil)
 	}
 
 }
+
 /*type NotFindResult struct {
 }
 
@@ -366,10 +367,10 @@ func (r *HTMLResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	if strings.EqualFold(r.Name, ""){
+	if strings.EqualFold(r.Name, "") {
 		//html 只处理，已经定义后缀名的文件
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path+conf.Config.ViewSuffix))
-	}else{
+		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
+	} else {
 		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
 	}
 	if err != nil {
@@ -410,21 +411,23 @@ func (r *HTMLResult) Apply(context *Context) {
 		log.Println(err)
 		t, err = template.New("").Parse(err.Error())
 	}
-
-	data := make(map[string]interface{})
-	data["session"] = context.Session.Attributes.GetMap()
-	data["query"] = tool.QueryParams(context.Request.URL.Query())
-	data["params"] = r.Params
-	data["host"] = context.Request.Host
-	data["time"] = time.Now().Unix() * 1000
-
-	jsonData:=make(map[string]interface{})
-	tool.JsonUnmarshal([]byte(conf.JsonText),&jsonData)
-
-	data["data"] =jsonData
+	data := createPageParams(context, r.Params)
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 	t.Execute(context.Response, data)
+}
+func createPageParams(context *Context, Params map[string]interface{}) map[string]interface{} {
+	data := make(map[string]interface{})
+	data["session"] = context.Session.Attributes.GetMap()
+	data["query"] = tool.QueryParams(context.Request.URL.Query())
+	data["params"] = Params
+	data["debug"] = conf.Config.Debug
+	data["host"] = context.Request.Host
+	data["time"] = time.Now().Unix() * 1000
+	jsonData := make(map[string]interface{})
+	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
+	data["data"] = jsonData
+	return data
 }
 
 type JsonResult struct {
@@ -445,7 +448,7 @@ func (r *JsonResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	b,err= tool.JsonMarshal(r.Data)
+	b, err = tool.JsonMarshal(r.Data)
 	if err != nil {
 		(&ErrorResult{Error: err}).Apply(context)
 		return
@@ -453,8 +456,6 @@ func (r *JsonResult) Apply(context *Context) {
 	//return buffer.Bytes(), err
 	//b, err = json.Marshal(r.Data)
 	//b = buffer.Bytes()
-
-
 
 	context.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
@@ -464,15 +465,16 @@ func (r *JsonResult) Apply(context *Context) {
 
 type FileServerResult struct {
 	Dir http.Dir
-
 }
+
 func (fs *FileServerResult) Apply(context *Context) {
 
-	http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response,context.Request)
+	http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response, context.Request)
 
 }
+
 type HtmlPlainResult struct {
-	Data string
+	Data   string
 	Params map[string]interface{}
 }
 
@@ -486,22 +488,16 @@ func (r *HtmlPlainResult) Apply(context *Context) {
 		t, err = template.New("").Parse(err.Error())
 	}
 
-	data := make(map[string]interface{})
-	data["session"] = context.Session.Attributes.GetMap()
-	data["query"] = tool.QueryParams(context.Request.URL.Query())
-	data["host"] = context.Request.Host
-	data["time"] = time.Now().Unix() * 1000
-	data["params"] = r.Params
+	data := createPageParams(context, r.Params)
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 	t.Execute(context.Response, data)
-
-
 
 	//context.Response.Header().Set("Content-Type", "text/xml; charset=utf-8")
 	//context.Response.WriteHeader(http.StatusOK)
 	//context.Response.Write([]byte(r.Data))
 }
+
 type TextResult struct {
 	Data string
 }
