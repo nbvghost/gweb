@@ -265,7 +265,7 @@ func (c *BaseController) AddHandler(_function function) {
 func (c *BaseController) doAction(context *Context) Result {
 	path := strings.TrimRight(context.Request.URL.Path, "/")
 	//rowUrl := context.Request.URL.String()
-	glog.Debug(context.Request.URL)
+	glog.Debug(context.Request.Method,context.Request.URL)
 
 	var f *function
 	var result Result

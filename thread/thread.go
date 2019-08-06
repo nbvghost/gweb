@@ -40,6 +40,7 @@ func ListeningSignal(signals ...os.Signal) chan os.Signal {
 	//_sn := make(chan os.Signal)
 	if len(signals)>0{
 		signal.Notify(sn, signals...)
+		
 	}else {
 		signal.Notify(sn, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 	}

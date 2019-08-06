@@ -1,10 +1,13 @@
 package gweb
 
 import (
+	"fmt"
 	"github.com/nbvghost/glog"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -36,17 +39,93 @@ type SingleHostReverseProxyResult struct {
 }
 
 func (r *SingleHostReverseProxyResult) Apply(context *Context) {
-
 	rp:=httputil.NewSingleHostReverseProxy(r.Target)
-
 	rp.ServeHTTP(context.Response,context.Request)
+}
+type SingleHostForwardProxyResult struct {
+	Target *url.URL
+}
+func (r *SingleHostForwardProxyResult) Apply(context *Context) {
+
+
+	transport := http.DefaultTransport
+
+
+	// step 1Forward Proxy
+	//outReq := new(http.Request)
+	//*outReq = *context.Request // this only does shallow copies of maps
+	fmt.Printf("Received request %s %s %s\n", context.Request.Method, context.Request.URL.String(), r.Target.String())
+	outReq, _ := http.NewRequest(context.Request.Method, r.Target.String(), context.Request.Body)
+
+	if clientIP, _, err := net.SplitHostPort(context.Request.RemoteAddr); err == nil {
+		if prior, ok := outReq.Header["X-Forwarded-For"]; ok {
+			clientIP = strings.Join(prior, ", ") + ", " + clientIP
+		}
+		outReq.Header.Set("X-Forwarded-For", clientIP)
+	}
+
+	// step 2
+	res, err := transport.RoundTrip(outReq)
+	if err != nil {
+		context.Response.WriteHeader(http.StatusBadGateway)
+
+	}else{
+		// step 3
+		for key, value := range res.Header {
+			for _, v := range value {
+				context.Response.Header().Add(key, v)
+			}
+		}
+		context.Response.WriteHeader(res.StatusCode)
+		io.Copy(context.Response, res.Body)
+		res.Body.Close()
+	}
+
 
 }
+type MIME string
+
+const (
+	MultipartByteranges MIME="multipart/byteranges"
+	MultipartFormData MIME="multipart/form-data"
+
+	AudioWave MIME="audio/wave"
+	AudioWav MIME="audio/wav"
+	AudioXWav MIME="audio/x-wav"
+	AudioWPnWav MIME="audio/x-pn-wav"
+	AudioWebm MIME="audio/webm"
+	AudioOgg MIME="audio/ogg"
+	AudioMpeg MIME="audio/mpeg"
+
+	VideoWebm MIME="video/webm"
+	VideoOgg MIME="video/ogg"
+	VideoMp4 MIME="video/mp4"
+
+
+	ApplicationOgg MIME="application/ogg"
+	ApplicationJson MIME="application/json"
+
+	ApplicationJavascript MIME="application/javascript"
+	ApplicationEcmascript MIME="application/ecmascript"
+	ApplicationOctetStream MIME="application/octet-stream"
+
+
+	ImageGif MIME="image/gif"
+	ImageJpeg MIME="image/jpeg"
+	ImagePng MIME="image/png"
+	ImageSvgXml MIME="image/svg+xml"
+
+	TextCss MIME="text/css"
+	TextHtml MIME="text/html"
+	TextPlain MIME="text/plain"
+
+)
 /**
 类型/子类型	扩展名
-application/envoy	evy
-application/fractals	fif
-application/futuresplash	spl
+application/json						json
+application/envoy						evy
+application/fractals					fif
+application/futuresplash				spl
 application/hta	hta
 application/internet-property-stream	acx
 application/mac-binhex40	hqx
