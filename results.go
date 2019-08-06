@@ -1,7 +1,7 @@
 package gweb
 
 import (
-	"fmt"
+
 	"github.com/nbvghost/glog"
 	"html/template"
 	"io"
@@ -54,7 +54,7 @@ func (r *SingleHostForwardProxyResult) Apply(context *Context) {
 	// step 1Forward Proxy
 	//outReq := new(http.Request)
 	//*outReq = *context.Request // this only does shallow copies of maps
-	fmt.Printf("Received request %s %s %s\n", context.Request.Method, context.Request.URL.String(), r.Target.String())
+	//fmt.Printf("Received request %s %s %s\n", context.Request.Method, context.Request.URL.String(), r.Target.String())
 	outReq, _ := http.NewRequest(context.Request.Method, r.Target.String(), context.Request.Body)
 
 	if clientIP, _, err := net.SplitHostPort(context.Request.RemoteAddr); err == nil {
