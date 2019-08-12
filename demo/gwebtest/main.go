@@ -2,7 +2,10 @@ package main
 
 import (
 	"github.com/nbvghost/gweb"
+	"github.com/nbvghost/gweb/conf"
+	"net/http"
 	"net/url"
+	"time"
 )
 
 //拦截器
@@ -40,10 +43,12 @@ func (c *IndexController) Apply() {
 
 
 	// 添加index地址映射
+	//访问路径示例：http://127.0.0.1:80/index
 	c.AddHandler(gweb.ALLMethod("index", func(context *gweb.Context) gweb.Result {
 		return &gweb.HTMLResult{}
 	}))
 
+	//访问子路径示例：http://127.0.0.1:80/wx/
 	wx := &WxController{}
 	wx.Interceptors = c.Interceptors //使用 父级 拦截器
 	c.AddSubController("/wx/", wx)   // 添加子控制器，相关的路由定义在 WxController.Apply() 里
@@ -57,6 +62,7 @@ type AccountController struct {
 
 func (c *AccountController) Apply() {
 
+	//访问路径示例：http://127.0.0.1:80/account/login
 	c.AddHandler(gweb.GETMethod("login", func(context *gweb.Context) gweb.Result {
 
 		user := &User{Name: "user name", Age: 12}
@@ -77,12 +83,14 @@ type WxController struct {
 
 func (c *WxController) Apply() {
 
+	//访问路径示例：http://127.0.0.1:80/wx/44545/path
 	c.AddHandler(gweb.GETMethod("{id}/path", func(context *gweb.Context) gweb.Result {
 
 		user := context.Session.Attributes.Get("admin").(*User)
 
 		return &gweb.HTMLResult{Name: "wx/path", Params: map[string]interface{}{"User": user, "Id": context.PathParams}}
 	}))
+	//访问路径示例：http://127.0.0.1:80/wx/info
 	c.AddHandler(gweb.GETMethod("info", func(context *gweb.Context) gweb.Result {
 
 		user := context.Session.Attributes.Get("admin").(*User)
@@ -101,8 +109,18 @@ func main() {
 	account := &AccountController{}
 	account.NewController("/account", account)
 
+
+
+	httpServer := &http.Server{
+		Addr:         conf.Config.HttpPort,
+		Handler:      http.DefaultServeMux,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		//MaxHeaderBytes: 1 << 20,
+	}
+
 	//启动web服务器
-	gweb.StartServer(true, false)
+	gweb.StartServer(http.DefaultServeMux,httpServer, nil)
 
 	//也可用，内置函数,gweb只是简单的做一个封装的
 	//err := http.ListenAndServe(conf.Config.HttpPort, nil)
