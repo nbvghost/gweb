@@ -13,11 +13,11 @@ type SessionSafeMap struct {
 }
 type Session struct {
 	//sync.RWMutex
-	Attributes     *Attributes
-	CreateTime     int64
-	GLSESSIONID    string
+	Attributes        *Attributes
+	CreateTime        int64
+	GLSESSIONID       string
 	LastOperationTime int64
-	LastRequestURL *url.URL
+	LastRequestURL    *url.URL
 }
 
 func (s *SessionSafeMap) DeleteSession(GLSESSIONID string) {
@@ -37,7 +37,7 @@ func (s *SessionSafeMap) AddSession(GLSESSIONID string, session *Session) {
 	}
 	s.Data[GLSESSIONID] = session*/
 	//db.NotifyAll(&db.Message{db.Socket_Type_1_STC,session})
-	s._data.Store(GLSESSIONID,session)
+	s._data.Store(GLSESSIONID, session)
 }
 func (s *SessionSafeMap) Range(f func(key, value interface{}) bool) {
 	s._data.Range(f)
@@ -46,8 +46,8 @@ func (s *SessionSafeMap) GetSession(GLSESSIONID string) *Session {
 	//s.RLock()
 	//defer s.RUnlock()
 
-	session,ok:=s._data.Load(GLSESSIONID)
-	if !ok{
+	session, ok := s._data.Load(GLSESSIONID)
+	if !ok {
 		return nil
 	}
 
