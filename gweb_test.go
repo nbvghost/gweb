@@ -3,6 +3,7 @@ package gweb
 import (
 	"fmt"
 	"testing"
+	"net/http"
 )
 
 func TestAll(t *testing.T) {

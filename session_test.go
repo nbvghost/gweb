@@ -11,14 +11,14 @@ func Test_sessionMap_DelectSession(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		s    *sessionMap
+		s    *SessionSafeMap
 		args args
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.s.DelectSession(tt.args.k)
+			tt.s.DeleteSession(tt.args.k)
 		})
 	}
 }
@@ -30,14 +30,14 @@ func Test_sessionMap_addSession(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		s    *sessionMap
+		s    *SessionSafeMap
 		args args
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.s.addSession(tt.args.GLSESSIONID, tt.args.session)
+			tt.s.AddSession(tt.args.GLSESSIONID, tt.args.session)
 		})
 	}
 }
@@ -48,7 +48,7 @@ func Test_sessionMap_GetSession(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		s    *sessionMap
+		s    *SessionSafeMap
 		args args
 		want *Session
 	}{

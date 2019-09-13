@@ -29,7 +29,7 @@ func StartServer(serverMux *http.ServeMux,httpServer *http.Server, httpsServer *
 	serverMux.Handle("/temp/", http.StripPrefix("/temp/", http.FileServer(http.Dir("temp"))))
 
 
-	if httpServer==nil && httpServer==nil {
+	if httpServer==nil && httpsServer==nil {
 		panic("选择http或https")
 		return
 	}

@@ -19,7 +19,7 @@ func Test_fileUp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileUp(tt.args.writer, tt.args.request)
+		(Static{}).fileUp(tt.args.writer, tt.args.request)
 		})
 	}
 }
@@ -37,7 +37,7 @@ func Test_fileNetLoad(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileNetLoad(tt.args.writer, tt.args.request)
+			(Static{}).fileNetLoad(tt.args.writer, tt.args.request)
 		})
 	}
 }
@@ -55,7 +55,7 @@ func Test_fileLoad(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileLoad(tt.args.writer, tt.args.request)
+			(Static{}).fileLoad(tt.args.writer, tt.args.request)
 		})
 	}
 }
@@ -73,7 +73,7 @@ func Test_fileTempLoad(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileTempLoad(tt.args.writer, tt.args.request)
+			(Static{}).fileTempLoad(tt.args.writer, tt.args.request)
 		})
 	}
 }
