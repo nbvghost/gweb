@@ -11,8 +11,8 @@ func TestAll(t *testing.T) {
 
 func TestStartServer(t *testing.T) {
 	type args struct {
-		HTTP  bool
-		HTTPS bool
+		HTTP  *http.Server
+		HTTPS *http.Server
 	}
 	tests := []struct {
 		name string
@@ -22,7 +22,7 @@ func TestStartServer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			StartServer(tt.args.HTTP, tt.args.HTTPS)
+			StartServer(http.DefaultServeMux,tt.args.HTTP, tt.args.HTTPS)
 		})
 	}
 }
