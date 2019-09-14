@@ -1,8 +1,6 @@
 package gweb
 
 import (
-
-	"github.com/nbvghost/glog"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -15,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/nbvghost/glog"
 
 	"time"
 
@@ -34,22 +34,23 @@ func (r *ErrorResult) Apply(context *Context) {
 	http.Error(context.Response, r.Error.Error(), http.StatusNotFound)
 
 }
+
 type SingleHostReverseProxyResult struct {
 	Target *url.URL
 }
 
 func (r *SingleHostReverseProxyResult) Apply(context *Context) {
-	rp:=httputil.NewSingleHostReverseProxy(r.Target)
-	rp.ServeHTTP(context.Response,context.Request)
+	rp := httputil.NewSingleHostReverseProxy(r.Target)
+	rp.ServeHTTP(context.Response, context.Request)
 }
+
 type SingleHostForwardProxyResult struct {
 	Target *url.URL
 }
+
 func (r *SingleHostForwardProxyResult) Apply(context *Context) {
 
-
 	transport := http.DefaultTransport
-
 
 	// step 1Forward Proxy
 	//outReq := new(http.Request)
@@ -69,7 +70,7 @@ func (r *SingleHostForwardProxyResult) Apply(context *Context) {
 	if err != nil {
 		context.Response.WriteHeader(http.StatusBadGateway)
 
-	}else{
+	} else {
 		// step 3
 		for key, value := range res.Header {
 			for _, v := range value {
@@ -81,45 +82,43 @@ func (r *SingleHostForwardProxyResult) Apply(context *Context) {
 		res.Body.Close()
 	}
 
-
 }
+
 type MIME string
 
 const (
-	MultipartByteranges MIME="multipart/byteranges"
-	MultipartFormData MIME="multipart/form-data"
+	MultipartByteranges MIME = "multipart/byteranges"
+	MultipartFormData   MIME = "multipart/form-data"
 
-	AudioWave MIME="audio/wave"
-	AudioWav MIME="audio/wav"
-	AudioXWav MIME="audio/x-wav"
-	AudioWPnWav MIME="audio/x-pn-wav"
-	AudioWebm MIME="audio/webm"
-	AudioOgg MIME="audio/ogg"
-	AudioMpeg MIME="audio/mpeg"
+	AudioWave   MIME = "audio/wave"
+	AudioWav    MIME = "audio/wav"
+	AudioXWav   MIME = "audio/x-wav"
+	AudioWPnWav MIME = "audio/x-pn-wav"
+	AudioWebm   MIME = "audio/webm"
+	AudioOgg    MIME = "audio/ogg"
+	AudioMpeg   MIME = "audio/mpeg"
 
-	VideoWebm MIME="video/webm"
-	VideoOgg MIME="video/ogg"
-	VideoMp4 MIME="video/mp4"
+	VideoWebm MIME = "video/webm"
+	VideoOgg  MIME = "video/ogg"
+	VideoMp4  MIME = "video/mp4"
 
+	ApplicationOgg  MIME = "application/ogg"
+	ApplicationJson MIME = "application/json"
 
-	ApplicationOgg MIME="application/ogg"
-	ApplicationJson MIME="application/json"
+	ApplicationJavascript  MIME = "application/javascript"
+	ApplicationEcmascript  MIME = "application/ecmascript"
+	ApplicationOctetStream MIME = "application/octet-stream"
 
-	ApplicationJavascript MIME="application/javascript"
-	ApplicationEcmascript MIME="application/ecmascript"
-	ApplicationOctetStream MIME="application/octet-stream"
+	ImageGif    MIME = "image/gif"
+	ImageJpeg   MIME = "image/jpeg"
+	ImagePng    MIME = "image/png"
+	ImageSvgXml MIME = "image/svg+xml"
 
-
-	ImageGif MIME="image/gif"
-	ImageJpeg MIME="image/jpeg"
-	ImagePng MIME="image/png"
-	ImageSvgXml MIME="image/svg+xml"
-
-	TextCss MIME="text/css"
-	TextHtml MIME="text/html"
-	TextPlain MIME="text/plain"
-
+	TextCss   MIME = "text/css"
+	TextHtml  MIME = "text/html"
+	TextPlain MIME = "text/plain"
 )
+
 /**
 类型/子类型	扩展名
 application/json						json
@@ -318,48 +317,45 @@ x-world/x-vrml	xof
 */
 type ViewActionMappingResult struct {
 }
+
 func (r *ViewActionMappingResult) Apply(context *Context) {
 
 	path := context.Request.URL.Path
 
-	if strings.EqualFold(path,"/"){
-		if strings.EqualFold(conf.Config.DefaultPage,"")==false{
-			path=path+conf.Config.DefaultPage
-			var redirectToUrlResult=&RedirectToUrlResult{Url:path}
+	if strings.EqualFold(path, "/") {
+		if strings.EqualFold(conf.Config.DefaultPage, "") == false {
+			path = path + conf.Config.DefaultPage
+			var redirectToUrlResult = &RedirectToUrlResult{Url: path}
 			redirectToUrlResult.Apply(context)
 			return
 		}
 
 	}
 
-	path = strings.TrimRight(path,"/")
-	b, err := ioutil.ReadFile(conf.Config.ViewDir + path+conf.Config.ViewSuffix)
+	path = strings.TrimRight(path, "/")
+	b, err := ioutil.ReadFile(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
 	if err != nil {
 		//fmt.Println(context.Request.Header)
 
-
-
-
-
 		var haveMIME = false
 		b, err := ioutil.ReadFile(conf.Config.ViewDir + path)
-		if err==nil{
+		if err == nil {
 			re, err := regexp.Compile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
 			glog.Error(err)
 
-			if re.MatchString(path){
-				Groups:=re.FindAllStringSubmatch(path, -1)
+			if re.MatchString(path) {
+				Groups := re.FindAllStringSubmatch(path, -1)
 				//[[/fgsd_gffdgdf.txt fgsd_gffdgdf txt]]
 				//{"ContentType": "text/html","Extension":"html"}
-				Extension:=Groups[0][2]
-				for index:= range conf.Config.ViewActionMapping{
-					ce:=conf.Config.ViewActionMapping[index]
-					if strings.EqualFold(ce.Extension,Extension){
+				Extension := Groups[0][2]
+				for index := range conf.Config.ViewActionMapping {
+					ce := conf.Config.ViewActionMapping[index]
+					if strings.EqualFold(ce.Extension, Extension) {
 						context.Response.Header().Set("Content-Type", ce.ContentType+"; charset=utf-8")
 						//w.Header().Set("X-Content-Type-Options", "nosniff")
 						context.Response.WriteHeader(http.StatusOK)
 						context.Response.Write(b)
-						haveMIME =true
+						haveMIME = true
 						break
 					}
 
@@ -367,21 +363,20 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 			}
 
 		}
-		if haveMIME==false{
+		if haveMIME == false {
 
-			fi,err:=os.Stat(conf.Config.ViewDir + path)
+			fi, err := os.Stat(conf.Config.ViewDir + path)
 			//log.Println(err)
-			if err==nil && fi.IsDir(){
+			if err == nil && fi.IsDir() {
 
-				path=path+"/"+conf.Config.DefaultPage
-				var redirectToUrlResult=&RedirectToUrlResult{Url:path}
+				path = path + "/" + conf.Config.DefaultPage
+				var redirectToUrlResult = &RedirectToUrlResult{Url: path}
 				redirectToUrlResult.Apply(context)
 
-			}else{
+			} else {
 				//没有找到路由，
 				http.NotFound(context.Response, context.Request)
 			}
-
 
 		}
 
@@ -390,10 +385,16 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 		context.Response.WriteHeader(http.StatusOK)
 		t, err := template.New("default").Funcs(tool.FuncMap()).Parse(string(b))
 		glog.Error(err)
-		t.Execute(context.Response, nil)
+
+		data := make(map[string]interface{})
+		data["session"] = context.Session.Attributes.GetMap()
+		data["query"] = tool.QueryParams(context.Request.URL.Query())
+
+		t.Execute(context.Response, data)
 	}
 
 }
+
 /*type NotFindResult struct {
 }
 
@@ -445,10 +446,10 @@ func (r *HTMLResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	if strings.EqualFold(r.Name, ""){
+	if strings.EqualFold(r.Name, "") {
 		//html 只处理，已经定义后缀名的文件
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path+conf.Config.ViewSuffix))
-	}else{
+		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
+	} else {
 		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
 	}
 	if err != nil {
@@ -497,10 +498,10 @@ func (r *HTMLResult) Apply(context *Context) {
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
 
-	jsonData:=make(map[string]interface{})
-	tool.JsonUnmarshal([]byte(conf.JsonText),&jsonData)
+	jsonData := make(map[string]interface{})
+	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
 
-	data["data"] =jsonData
+	data["data"] = jsonData
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 	t.Execute(context.Response, data)
@@ -524,7 +525,7 @@ func (r *JsonResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	b,err= tool.JsonMarshal(r.Data)
+	b, err = tool.JsonMarshal(r.Data)
 	if err != nil {
 		(&ErrorResult{Error: err}).Apply(context)
 		return
@@ -533,15 +534,14 @@ func (r *JsonResult) Apply(context *Context) {
 	//b, err = json.Marshal(r.Data)
 	//b = buffer.Bytes()
 
-
-
 	context.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 	//context.Response.Header().Add("Content-Type", "application/json")
 	context.Response.Write(b)
 }
+
 type HtmlPlainResult struct {
-	Data string
+	Data   string
 	Params map[string]interface{}
 }
 
@@ -565,12 +565,11 @@ func (r *HtmlPlainResult) Apply(context *Context) {
 	context.Response.WriteHeader(http.StatusOK)
 	t.Execute(context.Response, data)
 
-
-
 	//context.Response.Header().Set("Content-Type", "text/xml; charset=utf-8")
 	//context.Response.WriteHeader(http.StatusOK)
 	//context.Response.Write([]byte(r.Data))
 }
+
 type TextResult struct {
 	Data string
 }
