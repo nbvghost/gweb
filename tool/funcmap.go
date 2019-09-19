@@ -3,10 +3,11 @@ package tool
 import (
 	"bufio"
 	"bytes"
-
 	"github.com/nbvghost/glog"
 	"html/template"
+	"net/url"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -29,7 +30,54 @@ func FuncMap() template.FuncMap {
 		"ToJSON":          toJSON,
 		"DateTimeFormat":  DateTimeFormat,
 		"HTML":            HTML,
+		"UrlQueryEncode":  urlQueryEncode,
+		"DigitAdd":        digitAdd,
+		"DigitSub":        digitSub,
+		"DigitMul":        digitMul,
+		"DigitDiv":        digitDiv,
+		"DigitMod":        digitMod,
 	}
+}
+func digitAdd(a, b interface{}, prec int) float64 {
+	_a := reflect.ValueOf(a).Convert(reflect.TypeOf(float64(0))).Float()
+	_b := reflect.ValueOf(b).Convert(reflect.TypeOf(float64(0))).Float()
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(_a+_b, 'f', prec, 64), 64)
+	return f
+}
+func digitSub(a, b interface{}, prec int) float64 {
+	_a := reflect.ValueOf(a).Convert(reflect.TypeOf(float64(0))).Float()
+	_b := reflect.ValueOf(b).Convert(reflect.TypeOf(float64(0))).Float()
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(_a-_b, 'f', prec, 64), 64)
+	return f
+}
+func digitMul(a, b interface{}, prec int) float64 {
+	_a := reflect.ValueOf(a).Convert(reflect.TypeOf(float64(0))).Float()
+	_b := reflect.ValueOf(b).Convert(reflect.TypeOf(float64(0))).Float()
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(_a*_b, 'f', prec, 64), 64)
+	return f
+}
+func digitDiv(a, b interface{}, prec int) float64 {
+	_a := reflect.ValueOf(a).Convert(reflect.TypeOf(float64(0))).Float()
+	_b := reflect.ValueOf(b).Convert(reflect.TypeOf(float64(0))).Float()
+	//f, _ := strconv.ParseFloat(strconv.FormatFloat(_a/_b, 'f', prec, 64), 64)
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(_a/_b, 'f', prec, 64), 64)
+	return f
+}
+func digitMod(a, b interface{}) uint64 {
+	_a := reflect.ValueOf(a).Convert(reflect.TypeOf(float64(0))).Float()
+	_b := reflect.ValueOf(b).Convert(reflect.TypeOf(float64(0))).Float()
+
+	///f, _ := strconv.ParseFloat(strconv.FormatFloat(_a%_b, 'f', prec, 64), 64)
+	return uint64(_a) % uint64(_b)
+
+}
+func urlQueryEncode(source map[string]string) template.URL {
+	//fmt.Println(source)
+	v := &url.Values{}
+	for key := range source {
+		v.Set(key, source[key])
+	}
+	return template.URL(v.Encode())
 }
 func HTML(source string) template.HTML {
 	//fmt.Println(source)

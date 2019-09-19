@@ -335,6 +335,7 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 	path = strings.TrimRight(path, "/")
 	b, err := ioutil.ReadFile(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
 	if err != nil {
+		//不存在
 		//fmt.Println(context.Request.Header)
 
 		var haveMIME = false
@@ -490,11 +491,17 @@ func (r *HTMLResult) Apply(context *Context) {
 		log.Println(err)
 		t, err = template.New("").Parse(err.Error())
 	}
-
+	data := createPageParams(context, r.Params)
+	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	context.Response.WriteHeader(http.StatusOK)
+	t.Execute(context.Response, data)
+}
+func createPageParams(context *Context, Params map[string]interface{}) map[string]interface{} {
 	data := make(map[string]interface{})
 	data["session"] = context.Session.Attributes.GetMap()
 	data["query"] = tool.QueryParams(context.Request.URL.Query())
-	data["params"] = r.Params
+	data["params"] = Params
+	data["debug"] = conf.Config.Debug
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
 
@@ -540,6 +547,16 @@ func (r *JsonResult) Apply(context *Context) {
 	context.Response.Write(b)
 }
 
+type FileServerResult struct {
+	Dir http.Dir
+}
+
+func (fs *FileServerResult) Apply(context *Context) {
+
+	http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response, context.Request)
+
+}
+
 type HtmlPlainResult struct {
 	Data   string
 	Params map[string]interface{}
@@ -555,12 +572,7 @@ func (r *HtmlPlainResult) Apply(context *Context) {
 		t, err = template.New("").Parse(err.Error())
 	}
 
-	data := make(map[string]interface{})
-	data["session"] = context.Session.Attributes.GetMap()
-	data["query"] = tool.QueryParams(context.Request.URL.Query())
-	data["host"] = context.Request.Host
-	data["time"] = time.Now().Unix() * 1000
-	data["params"] = r.Params
+	data := createPageParams(context, r.Params)
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
 	t.Execute(context.Response, data)
