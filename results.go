@@ -509,9 +509,11 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
 
 	data["data"] = jsonData
-	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	context.Response.WriteHeader(http.StatusOK)
-	t.Execute(context.Response, data)
+
+	return data
+	//context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	//context.Response.WriteHeader(http.StatusOK)
+	//t.Execute(context.Response, data)
 }
 
 type JsonResult struct {
