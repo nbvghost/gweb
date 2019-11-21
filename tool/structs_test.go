@@ -2,40 +2,47 @@ package tool
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
 
+type BaseModel struct {
+	ID        uint64    `gorm:"column:ID;primary_key;unique" json:",omitempty"`           //条目TID
+	CreatedAt time.Time `gorm:"column:CreatedAt;index:CreatedAt_Index" json:",omitempty"` //登陆日期
+	UpdatedAt time.Time `gorm:"column:UpdatedAt" json:",omitempty"`                       //修改日期
+	//DeletedAt *time.Time `gorm:"column:DeletedAt" json:",omitempty"` //删除日期
+	//Delete    int        `gorm:"column:Delete"`                //0=无，1=删除，
+}
 type SessionCache struct {
-	UserID                          uint64    `gorm:"column:UserID;primary_key;unique"`                         //条目TID
-	CreatedAt                       time.Time `gorm:"column:CreatedAt;index:CreatedAt_Index" json:",omitempty"` //登陆日期
-	UpdatedAt                       time.Time `gorm:"column:UpdatedAt" json:",omitempty"`                       //修改日期
-	IdleCoinAward                   string    `gorm:"column:IdleCoinAward"`                                     //离线金币，用于认领
-	WheelPrizeCount                 int       `gorm:"column:WheelPrizeCount"`                                   //转盘次数
-	WheelNotStealNum                int64     `gorm:"column:WheelNotStealNum"`                                  //转盘，没有抽到盗贼的次数
-	WheelPrizeDataTableID           uint64    `gorm:"column:WheelPrizeDataTableID"`                             //
-	WheelCoinRand                   int       `gorm:"column:WheelCoinRand"`                                     //轮盘金币随机项
-	WheelFunctionItemRand           int       `gorm:"column:WheelFunctionItemRand"`                             //轮盘道具随机项
-	SystemUnlockOver                int       `gorm:"column:SystemUnlockOver"`                                  //所有功能是否开启 -1=false,0=?,1=true
-	NextRestoreVITTime              time.Time `gorm:"column:NextRestoreVITTime"`                                //下一次恢复体力的时间
-	NextRestoreStockTradeNumberTime time.Time `gorm:"column:NextRestoreStockTradeNumberTime"`                   //下一次恢复购买次数的时间
-	RestVITTime                     time.Time `gorm:"column:RestVITTime"`                                       //重置体力时间
-	RestBuyStockTrendNumberTime     time.Time `gorm:"column:RestBuyStockTrendNumberTime"`                       //
-	RestBuyNewStockNumTime          time.Time `gorm:"column:RestBuyNewStockNumTime"`                            //
-	BuyStockTrendNumber             int64     `gorm:"column:BuyStockTrendNumber"`                               //已经购买股票次数
-	UseStockTrendNumber             int64     `gorm:"column:UseStockTrendNumber"`                               //已经使用股票次数
-	BuyedNewStockStarCoinNum        string    `gorm:"column:BuyedNewStockStarCoinNum;default:'0'"`              //已经购买新股的星币数量
-	StockWeek                       uint64    `gorm:"column:StockWeek;default:0"`                               //股票一年的第几周
-	StockWeekGainAwards             uint64    `gorm:"column:StockWeekGainAwards;default:0"`                     //
-	LastDaySCoinRank                uint64    `gorm:"column:LastDaySCoinRank;default:0"`                        //
-	LastDaySCoinRankTime            time.Time `gorm:"column:LastDaySCoinRankTime"`                              //
-	CanNewStockTradeTime            time.Time `gorm:"column:CanNewStockTradeTime"`                              //
-	_oldSessionCache                *SessionCache
+	BaseModel
+	//AccountID                   uint64             `gorm:"column:AccountID;index:AccountID;unique_index:AccountIDWorldKeyAreaID_Unique_Index"`
+	WorldKey                    string             `gorm:"column:WorldKey;index:WorldKey_Index;unique_index:WorldKeyAreaIDAccount_Unique_Index;default:''"`
+	AreaID                      uint64             `gorm:"column:AreaID;index:AreaID_Index;unique_index:WorldKeyAreaIDAccount_Unique_Index;default:'0'"`
+	Account                     string             `gorm:"column:Account;index:Account_Index;unique_index:WorldKeyAreaIDAccount_Unique_Index"` //`gorm:"column:Account;unique;NOT NULL;unique_index:Account_Unique_Index"` //
+	NickName                    string             `gorm:"column:NickName"`                                                //
+	Avatar                      string             `gorm:"column:Avatar"`                                                  //
+	SuperiorUserID              uint64             `gorm:"column:SuperiorUserID"`                                          //
+	PlayerTitleDataTableID      uint64             `gorm:"column:PlayerTitleDataTableID"`                                  //
+	LastLoginFactoryDataTableID uint64 `gorm:"column:LastLoginFactoryDataTableID"`                             //最后登陆的工厂
+	OffLineTime                 time.Time          `gorm:"column:OffLineTime;index:OnOffTime_Index"`                       //离线时间
+	OnLineTime                  time.Time          `gorm:"column:OnLineTime;index:OnOffTime_Index"`                        //上线时间
+	Star                        uint32             `gorm:"column:Star;index:Star_Index"`                                   //
+	StarTime                    time.Time          `gorm:"column:StarTime;index:StarTime_Index"`                           //添加星星的时间
+	Robot                       uint64             `gorm:"column:Robot;default:'0'"`                                       //000000000  0=没有开启，1=已经开户
+	Guide                       string             `gorm:"column:Guide;type:TEXT"`                              //引导列表
+	SystemUnlock                string             `gorm:"column:SystemUnlock;type:TEXT"`                       //功能开启列表
+	Task                        string             `gorm:"column:Task;type:TEXT"`                               //任务成就
+	PKPoint                     int64              `gorm:"column:PKPoint;default:'0'"`                                     //PKPoint
+	InviteAward                 uint64             `gorm:"column:InviteAward;default:'0'"`                                 //二进制：000000 获取奖励,位表示，分享次数
+	LogicIndex                  int                `gorm:"column:LogicIndex;index:LogicIndex_Index;default:-1"`                                   //
+	Authorize int `gorm:"column:Authorize;index:Authorize_Index;default:0"`
+
 }
 
 func BenchmarkCopyAndChange(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		CopyAndChange(&SessionCache{UserID:545,IdleCoinAward:"241545"}, &SessionCache{})
+		CopyAndChange(&SessionCache{AreaID:545+uint64(i),NickName:"241545"+strconv.Itoa(i)}, &SessionCache{})
 	}
 }
 
@@ -50,7 +57,7 @@ func TestCopyAndChange(t *testing.T) {
 		args args
 		want map[string]interface{}
 	}{
-		{name:"sdfsd",args:args{source:&SessionCache{UserID:545,IdleCoinAward:"241545"},target:&SessionCache{}}},
+		{name:"sdfsd",args:args{source:&SessionCache{AreaID:5455,NickName:"241545二妹dg"},target:&SessionCache{}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
