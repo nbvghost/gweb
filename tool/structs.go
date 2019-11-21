@@ -1,7 +1,6 @@
 package tool
 
 import (
-
 	"reflect"
 )
 
@@ -13,24 +12,29 @@ func GetAllFieldName(t reflect.Type) []string {
 		if fi > (fieldNum - 1) {
 			break
 		}
-		//log.Println(t.Field(fi).Type.Kind())
-		//log.Println(t.Field(fi).Type.Name(), "Name")
-		//log.Println(t.Field(fi).Type)
-		if subT := t.Field(fi).Type; subT.Kind() == reflect.Struct {
-			subN := t.Field(fi).Type.Name()
+		field:=t.Field(fi)
+		fieldType:=field.Type
+		//log.Println(fieldType.Kind())
+		//log.Println(fieldType.Name(), "Name")
+		//log.Println(fieldType)
+		if subT := fieldType; subT.Kind() == reflect.Struct {
+
+			subN := fieldType.Name()
 			switch subN {
 			case "Time":
-				fields = append(fields, t.Field(fi).Name)
+				fields = append(fields, field.Name)
 			default:
 				sfs := GetAllFieldName(subT)
+				//fmt.Println(sfs)
 				fields = append(fields, sfs...)
 			}
 		} else {
-			fields = append(fields, t.Field(fi).Name)
+			fields = append(fields, field.Name)
 		}
 
 		fi++
 	}
+	//fmt.Println(fields)
 	return fields
 }
 func FindChange(source interface{}, target interface{}) map[string]interface{} {
@@ -70,6 +74,7 @@ func FindChange(source interface{}, target interface{}) map[string]interface{} {
 	return changeMap
 }
 func CopyAndChange(source interface{}, target interface{}) map[string]interface{} {
+
 	//第一步,先将结构体转化为map方便后续遍历
 	tsource := reflect.TypeOf(source).Elem()
 
