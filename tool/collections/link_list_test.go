@@ -1,25 +1,45 @@
 package collections
 
 import (
+	"math/rand"
 	"net/url"
 	"reflect"
+	"strconv"
 	"testing"
 )
 
+func BenchmarkLinkList_Add(b *testing.B) {
+	type args struct {
+		key   string
+		value string
+	}
+
+	type Da struct {
+		name   string
+		args   args
+	}
+	tests := make([]Da,0)
+	for i:=0;i<100;i++{
+		tests=append(tests,Da{name:"fdsfds",args:args{key:strconv.FormatInt(rand.Int63n(10),10),value:strconv.FormatInt(rand.Int63n(99),10)}})
+	}
+	v := &LinkList{}
+	for i:=0;i<b.N;i++ {
+		v.Sort(v.SortDescFunc)
+	}
+}
 func TestLinkList_Add(t *testing.T) {
 	type args struct {
 		key   string
 		value string
 	}
-	tests := []struct {
+
+	type Da struct {
 		name   string
 		args   args
-	}{
-		{name:"fdsfds",args:args{key:"1",value:"1"}},
-		{name:"fdsfds",args:args{key:"2",value:"2"}},
-		{name:"fdsfds",args:args{key:"3",value:"3"}},
-		{name:"fdsfds",args:args{key:"4",value:"4"}},
-		{name:"fdsfds",args:args{key:"5",value:"5"}},
+	}
+	tests := make([]Da,0)
+	for i:=0;i<100;i++{
+		tests=append(tests,Da{name:"fdsfds",args:args{key:strconv.FormatInt(rand.Int63n(10),10),value:strconv.FormatInt(rand.Int63n(99),10)}})
 	}
 	v := &LinkList{}
 	for _, tt := range tests {
@@ -29,8 +49,10 @@ func TestLinkList_Add(t *testing.T) {
 	}
 
 	t.Log(v)
-	v.SortDesc()
-	t.Log(v)
+	v.Sort(v.SortDescFunc)
+	t.Log(v.RootNode)
+	v.Sort(v.SortAscFunc)
+	t.Log(v.RootNode)
 }
 
 func TestLinkList_Get(t *testing.T) {
