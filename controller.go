@@ -371,23 +371,18 @@ func (c *BaseController) AddHandler(_function function) {
 //	_pattern := c.Root +"/"+ pattern
 //	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
 //}
-func (c *BaseController) doAction(context *Context) Result {
-	//path := strings.TrimRight(context.Request.URL.Path, "/")
-	path := context.Request.URL.Path
-	//rowUrl := context.Request.URL.String()
-	glog.Debug(context.Request.Method,context.Request.URL)
+func (c *BaseController) pathParams(Method,Path string) (*function,map[string]string) {
 
 	var f *function
-	var result Result
-	Method := context.Request.Method
+	var p map[string]string
 
-	if c.RequestMapping.GetByKey("ALL,"+path) != nil {
+	if c.RequestMapping.GetByKey("ALL,"+Path) != nil {
 
 		//fmt.Println(path,path)
-		f = c.RequestMapping.GetByKey("ALL,"+path).F
+		return c.RequestMapping.GetByKey("ALL,"+Path).F, map[string]string{}
 
-	} else if c.RequestMapping.GetByKey(Method+","+path) != nil {
-		f = c.RequestMapping.GetByKey(Method+","+path).F
+	} else if c.RequestMapping.GetByKey(Method+","+Path) != nil {
+		return c.RequestMapping.GetByKey(Method+","+Path).F, map[string]string{}
 
 	} else {
 		//地址包括参数的方法
@@ -395,13 +390,13 @@ func (c *BaseController) doAction(context *Context) Result {
 		c.RequestMapping.Range(func(index int, e *Mapping) bool {
 
 			keys := strings.Split(e.Key, ",") //[Method,Path]
-			if su, params := getPathParams(string(keys[1]), path); su {
+			if su, params := getPathParams(string(keys[1]), Path); su {
 				if strings.EqualFold(keys[0], "ALL") {
-					context.PathParams = params
+					p = params
 					f = e.F
 					return false
 				} else if strings.EqualFold(string(keys[0]), Method) {
-					context.PathParams = params
+					p = params
 					f = e.F
 					return false
 				}
@@ -410,9 +405,6 @@ func (c *BaseController) doAction(context *Context) Result {
 
 			return true
 		})
-
-
-
 
 		//是否有对应的路由
 		/*if f == nil {
@@ -423,12 +415,26 @@ func (c *BaseController) doAction(context *Context) Result {
 		}*/
 	}
 
+	return f,p
+}
+func (c *BaseController) doAction(context *Context,f *function) Result {
+	//path := strings.TrimRight(context.Request.URL.Path, "/")
+	//path := context.Request.URL.Path
+	//rowUrl := context.Request.URL.String()
+	glog.Debug(context.Request.Method,context.Request.URL)
+
+	//var f *function
+	var result Result
+
+	//Method := context.Request.Method
+	//f,context.PathParams = c.pathParams(Method,path)
+
 	if f == nil {
 		result = &ViewActionMappingResult{}
 	} else {
 		result = f.Function(context)
 		if result == nil {
-			glog.Error(errors.New("Action:" + path + "-> 返回视图类型为空"))
+			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
 		}
 	}
 
@@ -478,14 +484,20 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tool.JsonUnmarshal([]byte(conf.JsonText),&jsonData)
 	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData}
 	c.Context = context
-	bo, result := c.Interceptors.ExecuteAll(c)
+
+	Method := context.Request.Method
+
+	var f *function
+	f,context.PathParams = c.pathParams(Method,context.Request.URL.Path)
+
+	bo, executeResult := c.Interceptors.ExecuteAll(c)
 	if bo == false {
-		if result != nil {
-			result.Apply(context)
+		if executeResult != nil {
+			executeResult.Apply(context)
 		}
 		return
 	}
-	result = c.doAction(context)
+	result := c.doAction(context,f)
 	result.Apply(context)
 }
 
