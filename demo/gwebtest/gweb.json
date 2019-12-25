@@ -1,0 +1,21 @@
+{
+  "ViewDir": "view",
+  "ResourcesDir": "resources",
+  "ResourcesDirName": "resources",
+  "UploadDir": "upload",
+  "UploadDirName": "upload",
+  "DefaultPage": "index",
+  "JsonDataPath": "data.json",
+  "HttpPort": ":80",
+  "Debug":true,
+  "HttpsPort": ":443",
+  "Domain":"nrp.nutsy.cc",
+  "ViewSuffix": ".html",
+  "ViewActionMapping":[],
+  "TLSCertFile": "ssl/fjsdk.s.erlou.com.pem",
+  "TLSKeyFile": "ssl/fjsdk.s.erlou.com.key",
+  "DBUrl": "root:123456@tcp(127.0.0.1:3306)/statistics?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local",
+  "SessionExpires": 1800,
+  "Name":"glog",
+  "Ver":"0.0.0"
+}

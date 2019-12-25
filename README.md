@@ -7,7 +7,7 @@ golang web 轻框架
   - 子路径独立拦截器和控制器
   - 添加子控制器
   - 支持RESTful,OPTIONS,GET,HEAD,POST,PUT,DELETE,TRACE,CONNECT
-  - 支持 :id/path 路径映射
+  - 支持 {id}/path 路径映射
   - 内置返回类型有：ViewResult，HTMLResult，JsonResult，TextResult，RedirectToUrlResult，ImageResult，ImageBytesResult
   - 内置模板函数，除了golang的函数，还增加了IncludeHTML，Split，FromJSONToMap，FromJSONToArray，CipherDecrypter，CipherEncrypter，Int2String，Uint2String，Float2String，ToJSON
 
@@ -25,7 +25,7 @@ go get github.com/nbvghost/gweb
   - DefaultPage：默认文件名
   - JsonDataPath：json 数据文件，这个文件在所有视图文件中可以读取到，可用于程序业务配制信息一块。
   - HttpPort:http 端口
-  - HttpsPort:htpps 端口
+  - HttpsPort:https 端口
   - ViewSuffix：视图文件后缀
   - TLSCertFile，TLSKeyFile： https 证书文件
 
@@ -161,6 +161,7 @@ func main() {
 	//log.Println(err)
 
 }
+
 
 
 
