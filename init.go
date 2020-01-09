@@ -15,8 +15,8 @@ import (
 )
 
 var gwebJson="gweb.json"
-func init() {
 
+func init() {
 	flag.StringVar(&gwebJson,"gweb","gweb.json","-gweb 指定gweb.json的位置")
 	flag.Parse()
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
@@ -35,6 +35,7 @@ func init() {
 		conf.Config.DefaultPage = "index"
 		conf.Config.HttpPort = ":80"
 		conf.Config.HttpsPort = ":443"
+		conf.Config.SessionExpires = 1800
 		conf.Config.Domain = "localhost"
 		conf.Config.JsonDataPath = "data.json"
 		conf.Config.ViewSuffix = ".html"
