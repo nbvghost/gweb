@@ -281,7 +281,7 @@ func Test_delRepeatAll(t *testing.T) {
 		args args
 		want string
 	}{
-		{args:args{src:"/sdf/ds/f/dsf/ds/f",new:"/"}},
+		{args: args{src: "/sdf/ds/f/dsf/ds/f", new: "/"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -307,7 +307,8 @@ func Benchmark_getPathParams(b *testing.B) {
 }
 func Test_validateRoutePath(t *testing.T) {
 
-	fmt.Println(validateRoutePath("/{ds}{ds}/"))
+	fmt.Println(validateRoutePath("/{ds}/{ds}/"))
+	fmt.Println(validateRoutePath("/{ds}/{ds}/555/"))
 
 }
 func Test_getPathParams(t *testing.T) {

@@ -11,14 +11,17 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"testing"
 	"time"
 )
 
-var gwebJson="gweb.json"
+var gwebJson = "gweb.json"
 
 func init() {
-	flag.StringVar(&gwebJson,"gweb","gweb.json","-gweb 指定gweb.json的位置")
+	testing.Init()
+	flag.StringVar(&gwebJson, "gweb", "gweb.json", "-gweb 指定gweb.json的位置")
 	flag.Parse()
+
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
 	content, err := ioutil.ReadFile(gwebJson)
 	if err != nil {
@@ -67,19 +70,19 @@ func init() {
 		conf.Config.Ver = "0.0.0"
 	}
 
-	conf.Config.ViewDir = strings.Trim(conf.Config.ViewDir,"/")
-	conf.Config.ResourcesDir = strings.Trim(conf.Config.ResourcesDir,"/")
-	conf.Config.ResourcesDirName = strings.Trim(conf.Config.ResourcesDirName,"/")
-	conf.Config.UploadDir = strings.Trim(conf.Config.UploadDir,"/")
-	conf.Config.UploadDirName = strings.Trim(conf.Config.UploadDirName,"/")
-	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage,"/")
+	conf.Config.ViewDir = strings.Trim(conf.Config.ViewDir, "/")
+	conf.Config.ResourcesDir = strings.Trim(conf.Config.ResourcesDir, "/")
+	conf.Config.ResourcesDirName = strings.Trim(conf.Config.ResourcesDirName, "/")
+	conf.Config.UploadDir = strings.Trim(conf.Config.UploadDir, "/")
+	conf.Config.UploadDirName = strings.Trim(conf.Config.UploadDirName, "/")
+	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage, "/")
 
 	go func() {
-		if conf.Config.SessionExpires>0{
-			for{
+		if conf.Config.SessionExpires > 0 {
+			for {
 				Sessions.Range(func(key, value interface{}) bool {
-					session:=value.(*Session)
-					if time.Now().Unix()-session.LastOperationTime>=conf.Config.SessionExpires{
+					session := value.(*Session)
+					if time.Now().Unix()-session.LastOperationTime >= conf.Config.SessionExpires {
 						Sessions.DeleteSession(key.(string))
 					}
 					return true
@@ -90,39 +93,33 @@ func init() {
 
 	}()
 
-
-
-
 	dt, _ := tool.JsonMarshal(conf.Config)
 	//tool.Trace("当前配制信息：" + string(dt))
 	glog.Debugf("当前配制信息：\n%v\n", string(dt))
 
-
-
-	readDataFile:= func() error {
+	readDataFile := func() error {
 		mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
 		if err != nil {
 			return err //glog.Trace("当前未使用data.json 文件")
 		} else {
 			//fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
-			conf.JsonText=string(mJsonData)
+			conf.JsonText = string(mJsonData)
 			return nil
 			//err = json.Unmarshal(mJsonData, &conf.JsonData)
 			//glog.Error(err)
 			//return err
 		}
 	}
-	err=readDataFile()
-	if glog.Error(err){
-		if strings.EqualFold(conf.JsonText,""){
+	err = readDataFile()
+	if glog.Error(err) {
+		if strings.EqualFold(conf.JsonText, "") {
 			glog.Trace("当前未使用data.json 文件")
 		}
 	}
 
-
 	go func() {
-		ticker:=time.NewTicker(time.Second)
-		for range ticker.C{
+		ticker := time.NewTicker(time.Second)
+		for range ticker.C {
 			readDataFile()
 			//time.Sleep(time.Second * 3)
 		}
@@ -160,12 +157,12 @@ func init() {
 
 	}()
 
-
 }
+
 type Static struct {
-
 }
-func (static Static)fileUp(writer http.ResponseWriter, request *http.Request) {
+
+func (static Static) fileUp(writer http.ResponseWriter, request *http.Request) {
 
 	request.ParseForm()
 	File, FileHeader, err := request.FormFile("file")
@@ -185,7 +182,7 @@ func (static Static)fileUp(writer http.ResponseWriter, request *http.Request) {
 	//framework.WriteJSON(context, &framework.ActionStatus{true, "oK", base64Data})
 	//return &gweb.JsonResult{Data: &dao.ActionStatus{Success: true, Message: "ok", Data: fileName}}
 }
-func (static Static)fileNetLoad(writer http.ResponseWriter, request *http.Request) {
+func (static Static) fileNetLoad(writer http.ResponseWriter, request *http.Request) {
 	url := request.URL.Query().Get("url")
 	client := http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -209,7 +206,7 @@ func (static Static)fileNetLoad(writer http.ResponseWriter, request *http.Reques
 	writer.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	writer.Write(b)
 }
-func (static Static)fileLoad(writer http.ResponseWriter, request *http.Request) {
+func (static Static) fileLoad(writer http.ResponseWriter, request *http.Request) {
 	path := request.URL.Query().Get("path")
 
 	urldd, err := url.Parse(path)
@@ -220,7 +217,7 @@ func (static Static)fileLoad(writer http.ResponseWriter, request *http.Request) 
 		http.Redirect(writer, request, path, http.StatusFound)
 	}
 }
-func (static Static)fileTempLoad(writer http.ResponseWriter, request *http.Request) {
+func (static Static) fileTempLoad(writer http.ResponseWriter, request *http.Request) {
 	path := request.URL.Query().Get("path")
 	//fmt.Println(util.GetHost(context))
 	//return &gweb.ImageResult{FilePath: path}
