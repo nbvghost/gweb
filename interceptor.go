@@ -3,21 +3,32 @@ package gweb
 import (
 	"errors"
 	"github.com/nbvghost/glog"
-	"sync"
 )
 
 type Interceptors struct {
-	lock *sync.Mutex
+	//lock *sync.Mutex
 	list []Interceptor
 }
 type Interceptor interface {
 	Execute(Context *Context) (bool, Result)
 }
 
-func (inter *Interceptors) Add(value Interceptor) {
-	if inter.lock == nil {
-		inter.lock = &sync.Mutex{}
+func (inter *Interceptors) Len( ) int{
+	if inter==nil{
+		return 0
 	}
+	if inter.list==nil{
+		return 0
+	}
+	if len(inter.list)==0{
+		return 0
+	}
+	return len(inter.list)
+}
+func (inter *Interceptors) Add(value Interceptor) {
+	/*if inter.lock == nil {
+		inter.lock = &sync.Mutex{}
+	}*/
 
 	if inter.list == nil {
 		inter.list = make([]Interceptor, 0)
@@ -30,11 +41,11 @@ func (inter *Interceptors) Add(value Interceptor) {
 	}
 }
 func (inter *Interceptors) ExecuteAll(c *BaseController) (bool, Result) {
-	if inter.lock == nil {
+	/*if inter.lock == nil {
 		inter.lock = &sync.Mutex{}
 	}
 	inter.lock.Lock()
-	defer inter.lock.Unlock()
+	defer inter.lock.Unlock()*/
 	for _, value := range inter.list {
 		//Execute(Session *Session,Request *http.Request) Result
 

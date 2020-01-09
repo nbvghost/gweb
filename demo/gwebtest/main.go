@@ -27,7 +27,24 @@ func (this InterceptorManager) Execute(context *gweb.Context) (bool, gweb.Result
 		return true, nil
 	}
 }
+type InterceptorManagers struct {
+}
 
+//拦截器 方法，如果 允许登陆 返回true
+func (this InterceptorManagers) Execute(context *gweb.Context) (bool, gweb.Result) {
+	if context.Session.Attributes.Get("admin") == nil { //判断当前 session 信息
+		redirect := "" // 跳转地址
+		if len(context.Request.URL.Query().Encode()) == 0 {
+			redirect = context.Request.URL.Path
+		} else {
+			redirect = context.Request.URL.Path + "?" + context.Request.URL.Query().Encode()
+		}
+		//http.Redirect(Response, Request, "/account/login?redirect="+url.QueryEscape(redirect), http.StatusFound)
+		return false, &gweb.RedirectToUrlResult{Url: "/account/login?redirect=" + url.QueryEscape(redirect)}
+	} else {
+		return true, nil
+	}
+}
 type User struct {
 	Name string
 	Age  int
@@ -40,6 +57,7 @@ type IndexController struct {
 
 func (c *IndexController) Apply() {
 	c.Interceptors.Add(&InterceptorManager{}) //拦截器
+	c.Interceptors.Add(&InterceptorManagers{}) //拦截器
 
 
 	// 添加index地址映射

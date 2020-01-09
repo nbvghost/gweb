@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b9bc6dea-5c2c-4ccc-ae26-6420d3053595" name="Default" comment="" />
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <list default="true" id="b9bc6dea-5c2c-4ccc-ae26-6420d3053595" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/../../controller.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../controller.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../interceptor.go" beforeDir="false" afterPath="$PROJECT_DIR$/../../interceptor.go" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -21,14 +25,21 @@
       <find>wx</find>
     </findStrings>
   </component>
-  <component name="GOROOT" path="C:\Go" />
+  <component name="GOROOT" path="F:\Go" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
   </component>
+  <component name="ProjectId" id="1W8grwao0H4uoy7zIzb7JAxslTi" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent">
     <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="DefaultHtmlFileTemplate" value="HTML File" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="go.gopath.indexing.explicitly.defined" value="true" />
     <property name="go.import.settings.migrated" value="true" />
@@ -41,18 +52,6 @@
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\work\Desktop\gwebtest\view" />
     </key>
-  </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
   </component>
   <component name="RunManager">
     <configuration name="go build gwebtest/" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true">
@@ -70,19 +69,64 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
+  <component name="WindowStateProjectService">
+    <state x="552" y="214" key="#GOROOT" timestamp="1578536854589">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state x="552" y="214" key="#GOROOT/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578536854589" />
+    <state x="414" y="210" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1578536850834">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state x="414" y="210" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578536850834" />
+    <state width="1877" height="424" key="GridCell.Tab.0.bottom" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.0.bottom/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+    <state width="1877" height="424" key="GridCell.Tab.0.center" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.0.center/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+    <state width="1877" height="424" key="GridCell.Tab.0.left" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.0.left/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+    <state width="1877" height="424" key="GridCell.Tab.0.right" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.0.right/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+    <state width="1877" height="424" key="GridCell.Tab.1.bottom" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.1.bottom/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+    <state width="1877" height="424" key="GridCell.Tab.1.center" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.1.center/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+    <state width="1877" height="424" key="GridCell.Tab.1.left" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.1.left/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+    <state width="1877" height="424" key="GridCell.Tab.1.right" timestamp="1578537250596">
+      <screen x="0" y="30" width="1920" height="1050" />
+    </state>
+    <state width="1877" height="424" key="GridCell.Tab.1.right/0.30.1920.1050/-1920.30.1920.1050@0.30.1920.1050" timestamp="1578537250596" />
+  </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/../../controller.go</url>
-          <line>232</line>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
     <watches-manager>
       <configuration name="GoApplicationRunConfiguration">
         <watch expression="*(*&quot;github.com/nbvghost/gweb.function&quot;)(824634762416)" />

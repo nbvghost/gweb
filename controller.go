@@ -490,13 +490,16 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var f *function
 	f,context.PathParams = c.pathParams(Method,context.Request.URL.Path)
 
-	bo, executeResult := c.Interceptors.ExecuteAll(c)
-	if bo == false {
-		if executeResult != nil {
-			executeResult.Apply(context)
+	if c.Interceptors.Len()>0{
+		bo, executeResult := c.Interceptors.ExecuteAll(c)
+		if bo == false {
+			if executeResult != nil {
+				executeResult.Apply(context)
+			}
+			return
 		}
-		return
 	}
+
 	result := c.doAction(context,f)
 	result.Apply(context)
 }
