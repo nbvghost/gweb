@@ -128,6 +128,10 @@ type Mapping struct {
 
 func (lm *ListMapping)Range(call func(index int,e *Mapping)bool) {
 
+	if lm==nil{
+		return
+	}
+
 	for index:=range lm._list{
 
 		co:=call(index,lm._list[index])
@@ -139,7 +143,9 @@ func (lm *ListMapping)Range(call func(index int,e *Mapping)bool) {
 
 }
 func (lm *ListMapping)GetByKey(Key string) *Mapping {
-
+	if lm==nil{
+		return nil
+	}
 	for index,value:=range lm._list{
 		if strings.EqualFold(value.Key,Key){
 			return lm._list[index]
