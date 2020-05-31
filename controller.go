@@ -33,56 +33,56 @@ type function struct {
 
 func GETMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "GET"
+	_function.Method = http.MethodGet
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
 func OPTMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "OPTIONS"
+	_function.Method = http.MethodOptions
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
 func HEAMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "HEAD"
+	_function.Method = http.MethodHead
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
 func POSMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "POST"
+	_function.Method = http.MethodPost
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
 func PUTMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "PUT"
+	_function.Method = http.MethodPut
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
 func DELMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "DELETE"
+	_function.Method = http.MethodDelete
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
 func TRAMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "TRACE"
+	_function.Method = http.MethodTrace
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
 func CONMethod(RoutePath string, call func(context *Context) Result) function {
 	var _function function
-	_function.Method = "CONNECT"
+	_function.Method = http.MethodConnect
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
@@ -106,7 +106,7 @@ func ALLMethod(RoutePath string, call func(context *Context) Result) function {
 type IController interface {
 	Apply()
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
-	addRequestMapping(key string,f *function)*ListMapping
+	addRequestMapping(key string, f *function) *ListMapping
 }
 
 /*type ISubController interface {
@@ -123,66 +123,66 @@ type ListMapping struct {
 }
 type Mapping struct {
 	Key string
-	F *function
+	F   *function
 }
 
-func (lm *ListMapping)Range(call func(index int,e *Mapping)bool) {
+func (lm *ListMapping) Range(call func(index int, e *Mapping) bool) {
 
-	if lm==nil{
+	if lm == nil {
 		return
 	}
 
-	for index:=range lm._list{
+	for index := range lm._list {
 
-		co:=call(index,lm._list[index])
-		if co==false{
+		co := call(index, lm._list[index])
+		if co == false {
 			break
 		}
 
 	}
 
 }
-func (lm *ListMapping)GetByKey(Key string) *Mapping {
-	if lm==nil{
+func (lm *ListMapping) GetByKey(Key string) *Mapping {
+	if lm == nil {
 		return nil
 	}
-	for index,value:=range lm._list{
-		if strings.EqualFold(value.Key,Key){
+	for index, value := range lm._list {
+		if strings.EqualFold(value.Key, Key) {
 			return lm._list[index]
 		}
 	}
 	return nil
 
 }
-func (lm *ListMapping)Add(e *Mapping)  {
+func (lm *ListMapping) Add(e *Mapping) {
 	lm.Lock()
 	defer lm.Unlock()
-	if lm.GetByKey(e.Key)!=nil{
+	if lm.GetByKey(e.Key) != nil {
 		panic(errors.New("不允许添加相同的路由"))
 	}
 
-
-	if lm._list==nil{
-		lm._list =make([]*Mapping,0)
+	if lm._list == nil {
+		lm._list = make([]*Mapping, 0)
 	}
 
-	lm._list=append(lm._list,e)
+	lm._list = append(lm._list, e)
 
 	sort.SliceStable(lm._list, func(i, j int) bool {
-		e:=lm._list[i]
-		_e:=lm._list[j]
+		e := lm._list[i]
+		_e := lm._list[j]
 
-		eRs:=strings.Split(e.Key,"/")
-		_eRs:=strings.Split(_e.Key,"/")
+		eRs := strings.Split(e.Key, "/")
+		_eRs := strings.Split(_e.Key, "/")
 
-		if len(eRs)>len(_eRs){
+		if len(eRs) > len(_eRs) {
 
 			return true
-		}else{
+		} else {
 			return false
 		}
 	})
 }
+
 type BaseController struct {
 	RequestMapping   *ListMapping //map[string]*function
 	Context          *Context
@@ -191,21 +191,31 @@ type BaseController struct {
 	ParentController *BaseController
 	sync.RWMutex
 }
-func (c *BaseController) addRequestMapping(key string,f *function)*ListMapping{
+
+func (c *BaseController) Apply() {
+
+	panic("子类实现")
+
+}
+
+func (c *BaseController) addRequestMapping(key string, f *function) *ListMapping {
 	//c.Lock()
 	//defer c.Unlock()
 	//c.RequestMapping[key] =f
-	if c.RequestMapping==nil{
+	if c.RequestMapping == nil {
 		c.RequestMapping = &ListMapping{}
 	}
-	c.RequestMapping.Add(&Mapping{Key:key,F:f})
+	c.RequestMapping.Add(&Mapping{Key: key, F: f})
 	return c.RequestMapping
 }
+
 /*func (c *BaseSubController) AddHandler(pattern string, function *Function) {
 	c.Base.AddHandler("/"+c.SubPath+"/"+pattern, function)
 }*/
 
-func (c *BaseController) NewController(path string, ic IController) {
+func (c *BaseController) NewController(path string) {
+
+	ic := IController(c)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -216,10 +226,10 @@ func (c *BaseController) NewController(path string, ic IController) {
 		}
 	}()
 
-	if strings.EqualFold(path,"/") || strings.EqualFold(path,""){
-		path="/"
-	}else{
-		path="/"+strings.Trim(path,"/")+"/"
+	if strings.EqualFold(path, "/") || strings.EqualFold(path, "") {
+		path = "/"
+	} else {
+		path = "/" + strings.Trim(path, "/") + "/"
 	}
 	c.Root = path
 	//path = fixPath(path)
@@ -234,27 +244,23 @@ func (c *BaseController) NewController(path string, ic IController) {
 	ic.Apply()
 	http.Handle(path, ic)
 
-
 }
 func (c *BaseController) AddSubController(path string, isubc IController) {
 	//subbc := &BaseController{}
 	//subbc.Base = c
 	//subbc.SubPath = path
 
-
-
-	if strings.EqualFold(path,"/") || strings.EqualFold(path,""){
+	if strings.EqualFold(path, "/") || strings.EqualFold(path, "") {
 		panic(errors.New("路由地址为*或空，请使用ALLMethod方法，创建function"))
 		//panic(errors.New("不允许有空的路由"))
 		return
-	}else{
-		path=strings.Trim(path,"/")+"/"
+	} else {
+		path = strings.Trim(path, "/") + "/"
 	}
 
-
-	if strings.EqualFold(c.Root,"/"){
-		path=c.Root+path
-	}else{
+	if strings.EqualFold(c.Root, "/") {
+		path = c.Root + path
+	} else {
 		path = c.Root + path
 	}
 
@@ -267,7 +273,6 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	//fmt.Println(value.Interface())
 
 	RootField := value.FieldByName("Root")
-
 
 	//fmt.Println(RootField)
 	//fmt.Println("----")
@@ -299,40 +304,30 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 		return &ViewActionMappingResult{}
 	}
 
-
 	//c.RequestMapping[key] = &_function
-	subMapping:=isubc.addRequestMapping(key,&_function)
+	subMapping := isubc.addRequestMapping(key, &_function)
 	subMapping.Range(func(index int, e *Mapping) bool {
 
-		c.addRequestMapping(e.Key,e.F)
+		c.addRequestMapping(e.Key, e.F)
 		return true
 	})
 
-
-
-
 	//http.Handle(path, isubc)
-
 
 }
 
 ///func(context *Context) Result
 func (c *BaseController) AddHandler(_function function) {
-	if strings.EqualFold(_function.RoutePath,""){
+	if strings.EqualFold(_function.RoutePath, "") {
 		panic(errors.New("不允许有空的路由"))
 		return
 	}
-
-
-
-
 
 	/*c.Lock()
 	defer c.Unlock()
 	if c.RequestMapping == nil {
 		c.RequestMapping = make(map[string]*function)
 	}*/
-
 
 	if strings.EqualFold(_function.RoutePath, "*") || strings.EqualFold(_function.RoutePath, "") {
 		if !strings.EqualFold(_function.Method, "ALL") {
@@ -344,14 +339,12 @@ func (c *BaseController) AddHandler(_function function) {
 		return
 	}
 
-	var _pattern =""
+	var _pattern = ""
 
 	//_function.RoutePath = strings.Trim(_function.RoutePath,"/")
-	_function.RoutePath = strings.TrimLeft(_function.RoutePath,"/")
+	_function.RoutePath = strings.TrimLeft(_function.RoutePath, "/")
 
-	_pattern = c.Root +  _function.RoutePath
-
-
+	_pattern = c.Root + _function.RoutePath
 
 	if validateRoutePath(_pattern) == false {
 		return
@@ -377,7 +370,7 @@ func (c *BaseController) AddHandler(_function function) {
 //	_pattern := c.Root +"/"+ pattern
 //	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
 //}
-func (c *BaseController) pathParams(Method,Path string) (*function,map[string]string) {
+func (c *BaseController) pathParams(Method, Path string) (*function, map[string]string) {
 
 	var f *function
 	var p map[string]string
@@ -385,10 +378,10 @@ func (c *BaseController) pathParams(Method,Path string) (*function,map[string]st
 	if c.RequestMapping.GetByKey("ALL,"+Path) != nil {
 
 		//fmt.Println(path,path)
-		return c.RequestMapping.GetByKey("ALL,"+Path).F, map[string]string{}
+		return c.RequestMapping.GetByKey("ALL," + Path).F, map[string]string{}
 
 	} else if c.RequestMapping.GetByKey(Method+","+Path) != nil {
-		return c.RequestMapping.GetByKey(Method+","+Path).F, map[string]string{}
+		return c.RequestMapping.GetByKey(Method + "," + Path).F, map[string]string{}
 
 	} else {
 		//地址包括参数的方法
@@ -421,13 +414,13 @@ func (c *BaseController) pathParams(Method,Path string) (*function,map[string]st
 		}*/
 	}
 
-	return f,p
+	return f, p
 }
-func (c *BaseController) doAction(context *Context,f *function) Result {
+func (c *BaseController) doAction(context *Context, f *function) Result {
 	//path := strings.TrimRight(context.Request.URL.Path, "/")
 	//path := context.Request.URL.Path
 	//rowUrl := context.Request.URL.String()
-	glog.Debug(context.Request.Method,context.Request.URL)
+	glog.Debug(context.Request.Method, context.Request.URL)
 
 	//var f *function
 	var result Result
@@ -464,14 +457,14 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		GLSESSIONID = tool.UUID()
 		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: int(30 * time.Minute)})
-		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(),  GLSESSIONID: GLSESSIONID}
+		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
 		Sessions.AddSession(GLSESSIONID, session)
 
 	} else {
 
 		session = Sessions.GetSession(cookie.Value)
 		if session == nil {
-			session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(),  GLSESSIONID: cookie.Value}
+			session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), GLSESSIONID: cookie.Value}
 
 			Sessions.AddSession(cookie.Value, session)
 		}
@@ -479,24 +472,22 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	session.LastRequestURL = r.URL
 
-
 	c.Lock()
-	w.Header().Add("Server-Name",conf.Config.Name)
-	w.Header().Add("Server-Ver",conf.Config.Ver)
+	w.Header().Add("Server-Name", conf.Config.Name)
+	w.Header().Add("Server-Ver", conf.Config.Ver)
 	c.Unlock()
 
-
-	jsonData:=make(map[string]interface{})
-	tool.JsonUnmarshal([]byte(conf.JsonText),&jsonData)
+	jsonData := make(map[string]interface{})
+	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
 	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData}
 	c.Context = context
 
 	Method := context.Request.Method
 
 	var f *function
-	f,context.PathParams = c.pathParams(Method,context.Request.URL.Path)
+	f, context.PathParams = c.pathParams(Method, context.Request.URL.Path)
 
-	if c.Interceptors.Len()>0{
+	if c.Interceptors.Len() > 0 {
 		bo, executeResult := c.Interceptors.ExecuteAll(c)
 		if bo == false {
 			if executeResult != nil {
@@ -506,7 +497,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result := c.doAction(context,f)
+	result := c.doAction(context, f)
 	result.Apply(context)
 }
 
@@ -518,7 +509,7 @@ func validateRoutePath(RoutePath string) bool {
 	re, err := regexp.Compile("^[0-9a-zA-Z_\\/\\{\\}\\.]+$")
 	glog.Error(err)
 
-	if re.MatchString(RoutePath) == false && strings.EqualFold(RoutePath,"")==false {
+	if re.MatchString(RoutePath) == false && strings.EqualFold(RoutePath, "") == false {
 		//panic("路径:" + RoutePath + ":不允许含有0-9a-zA-Z/{}之外的字符")
 		panic(errors.New("路径:" + RoutePath + ":不允许含有0-9a-zA-Z/{}之外的字符"))
 		return false
@@ -564,14 +555,14 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 	mRoutePaths := strings.Split(_RoutePath, "/")
 	mPaths := strings.Split(_Path, "/")
 
-	tr:=RoutePath[len(RoutePath)-1:]
-	isDirPath:=strings.EqualFold(tr,"/")
+	tr := RoutePath[len(RoutePath)-1:]
+	isDirPath := strings.EqualFold(tr, "/")
 
 	//两个目录级别要一样。
-	if len(mRoutePaths) != len(mPaths) && isDirPath==false{
+	if len(mRoutePaths) != len(mPaths) && isDirPath == false {
 		return false, result
 	}
-	if len(mRoutePaths) > len(mPaths){
+	if len(mRoutePaths) > len(mPaths) {
 		return false, result
 	}
 
@@ -625,8 +616,8 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 		} else {
 			//没有参数
 			if !strings.EqualFold(mRoutePaths[index], mPaths[index]) {
-				if isDirPath{
-					if len(mRoutePaths)==index+1{
+				if isDirPath {
+					if len(mRoutePaths) == index+1 {
 						return true, result
 					}
 
