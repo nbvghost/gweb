@@ -194,8 +194,6 @@ type BaseController struct {
 
 func (c *BaseController) Apply() {
 
-	panic("子类实现")
-
 }
 
 func (c *BaseController) addRequestMapping(key string, f *function) *ListMapping {
