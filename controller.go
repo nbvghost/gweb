@@ -104,7 +104,7 @@ func ALLMethod(RoutePath string, call func(context *Context) Result) function {
 | "TRACE"                  ; Section 9.8
 | "CONNECT"                ; Section 9.9*/
 type IController interface {
-	Apply()
+	Init()
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 	addRequestMapping(key string, f *function) *ListMapping
 }
@@ -157,8 +157,8 @@ func (lm *ListMapping) GetByKey(Key string) *Mapping {
 func (lm *ListMapping) Add(e *Mapping) {
 	lm.Lock()
 	defer lm.Unlock()
-	if lm.GetByKey(e.Key) != nil {
-		panic(errors.New("不允许添加相同的路由"))
+	if has := lm.GetByKey(e.Key); has != nil {
+		panic(errors.New("不允许添加相同的路由:" + has.Key))
 	}
 
 	if lm._list == nil {
@@ -192,7 +192,7 @@ type BaseController struct {
 	sync.RWMutex
 }
 
-func (c *BaseController) Apply() {
+func (c *BaseController) Init() {
 
 }
 
@@ -211,9 +211,7 @@ func (c *BaseController) addRequestMapping(key string, f *function) *ListMapping
 	c.Base.AddHandler("/"+c.SubPath+"/"+pattern, function)
 }*/
 
-func (c *BaseController) NewController(path string) {
-
-	ic := IController(c)
+func (c *BaseController) NewController(path string, controller IController) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -239,8 +237,8 @@ func (c *BaseController) NewController(path string) {
 	if validateRoutePath(path) == false {
 		return
 	}
-	ic.Apply()
-	http.Handle(path, ic)
+	controller.Init()
+	http.Handle(path, c)
 
 }
 func (c *BaseController) AddSubController(path string, isubc IController) {
@@ -285,7 +283,7 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 		return
 	}
 
-	isubc.Apply()
+	isubc.Init()
 
 	key := "Get," + path
 
