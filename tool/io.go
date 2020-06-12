@@ -3,6 +3,8 @@ package tool
 import (
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
+	"github.com/nbvghost/gweb/tool/encryption"
+
 	"os"
 	"strconv"
 	"strings"
@@ -10,16 +12,15 @@ import (
 )
 
 type FileDirType int32
+
 var FileDirT FileDirType = 1
 var FileDirTemp FileDirType = 1
 
-
-
-func CreateFile(FilePath,FileName string)*os.File  {
+func CreateFile(FilePath, FileName string) *os.File {
 
 	return nil
 }
-func IsFileExist(path string) bool  {
+func IsFileExist(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 
 		return false
@@ -27,11 +28,10 @@ func IsFileExist(path string) bool  {
 		return true
 	}
 }
-func WriteTempUrlNameFile(b []byte,Url string) string {
+func WriteTempUrlNameFile(b []byte, Url string) string {
 
-	md5Name := Md5ByString(Url)
+	md5Name := encryption.Md5ByString(Url)
 	var f *os.File
-
 
 	filePath := string(md5Name[0:1])
 
@@ -58,7 +58,7 @@ func WriteTempUrlNameFile(b []byte,Url string) string {
 }
 func WriteTempFile(b []byte, ContentType string) string {
 
-	md5Name := Md5ByBytes(b)
+	md5Name := encryption.Md5ByBytes(b)
 	var f *os.File
 
 	fileTypes := strings.Split(ContentType, "/")
@@ -95,7 +95,7 @@ func WriteTempFile(b []byte, ContentType string) string {
 
 }
 func WriteFile(b []byte, ContentType string) string {
-	md5Name := Md5ByBytes(b)
+	md5Name := encryption.Md5ByBytes(b)
 	now := time.Now()
 	var f *os.File
 

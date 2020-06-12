@@ -1,4 +1,4 @@
-package tool
+package encryption
 
 import (
 	"crypto/aes"
@@ -6,14 +6,14 @@ import (
 	"encoding/hex"
 )
 
-func AESCFBEndEncrypt(origin_data string)string{
+func AESCFBEndEncrypt(secretKey SecretKey, origin_data string) string {
 
 	// Load your secret key from a safe place and reuse it across multiple
 	// NewCipher calls. (Obviously don't use this example key for anything
 	// real.) If you want to convert a passphrase to a key, use a suitable
 	// package like bcrypt or scrypt.
 	//key, _ := hex.DecodeString("6368616e676520746869732070617373")
-	key, _ := hex.DecodeString(public_PassWord)
+	key, _ := hex.DecodeString(string(secretKey))
 	plaintext := []byte(origin_data)
 
 	block, err := aes.NewCipher(key)
@@ -39,12 +39,12 @@ func AESCFBEndEncrypt(origin_data string)string{
 	return hex.EncodeToString(ciphertext[aes.BlockSize:])
 }
 
-func AESCFBEndDecrypt(encrypt_data string)string{
+func AESCFBEndDecrypt(secretKey SecretKey, encrypt_data string) string {
 	// Load your secret key from a safe place and reuse it across multiple
 	// NewCipher calls. (Obviously don't use this example key for anything
 	// real.) If you want to convert a passphrase to a key, use a suitable
 	// package like bcrypt or scrypt.
-	key, _ := hex.DecodeString(public_PassWord)
+	key, _ := hex.DecodeString(string(secretKey))
 	ciphertext, _ := hex.DecodeString(encrypt_data)
 
 	block, err := aes.NewCipher(key)
@@ -56,7 +56,7 @@ func AESCFBEndDecrypt(encrypt_data string)string{
 	// include it at the beginning of the ciphertext.
 
 	//iv := ciphertext[:aes.BlockSize]
-	iv := make([]byte,aes.BlockSize)
+	iv := make([]byte, aes.BlockSize)
 	//ciphertext = ciphertext[aes.BlockSize:]
 
 	stream := cipher.NewCFBDecrypter(block, iv)

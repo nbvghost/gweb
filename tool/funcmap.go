@@ -22,20 +22,20 @@ func FuncMap() template.FuncMap {
 		"Split":           splitFunc,
 		"FromJSONToMap":   fromJSONToMap,
 		"FromJSONToArray": fromJSONToArray,
-		"CipherDecrypter": cipherDecrypter,
-		"CipherEncrypter": cipherEncrypter,
-		"Int2String":      int2String,
-		"Uint2String":     uint2String,
-		"Float2String":    float2String,
-		"ToJSON":          toJSON,
-		"DateTimeFormat":  DateTimeFormat,
-		"HTML":            HTML,
-		"UrlQueryEncode":  urlQueryEncode,
-		"DigitAdd":        digitAdd,
-		"DigitSub":        digitSub,
-		"DigitMul":        digitMul,
-		"DigitDiv":        digitDiv,
-		"DigitMod":        digitMod,
+		//"CipherDecrypter": cipherDecrypter,
+		//"CipherEncrypter": cipherEncrypter,
+		"Int2String":     int2String,
+		"Uint2String":    uint2String,
+		"Float2String":   float2String,
+		"ToJSON":         toJSON,
+		"DateTimeFormat": DateTimeFormat,
+		"HTML":           HTML,
+		"UrlQueryEncode": urlQueryEncode,
+		"DigitAdd":       digitAdd,
+		"DigitSub":       digitSub,
+		"DigitMul":       digitMul,
+		"DigitDiv":       digitDiv,
+		"DigitMod":       digitMod,
 	}
 }
 func digitAdd(a, b interface{}, prec int) float64 {
@@ -104,15 +104,16 @@ func uint2String(source interface{}) string {
 func float2String(source interface{}) string {
 	return strconv.FormatFloat((source.(float64)), 'f', -1, 64)
 }
-func cipherDecrypter(source string) string {
 
-	str := CipherDecrypter(public_PassWord, source)
+/*func cipherDecrypter(source string) string {
+
+	str := encryption.CipherDecrypter(encryption.public_PassWord, source)
 	return str
 }
 func cipherEncrypter(source string) string {
-	str := CipherEncrypter(public_PassWord, source)
+	str := encryption.CipherEncrypter(encryption.public_PassWord, source)
 	return str
-}
+}*/
 func fromJSONToMap(source string) map[string]interface{} {
 	d := make(map[string]interface{})
 	err := JsonUnmarshal([]byte(source), &d)

@@ -1,4 +1,4 @@
-package tool
+package encryption
 
 import (
 	"crypto/aes"
@@ -10,62 +10,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"io"
-	"net/url"
-	"strconv"
-	"strings"
 	"github.com/nbvghost/glog"
+	"io"
+	"strings"
 )
 
-type Hashids struct {
-}
-
-func (Hashids) EncodeShareKey(UserID uint64) string {
-	return "UserID:" + strconv.Itoa(int(UserID))
-}
-func (Hashids) DecodeShareKey(ShareKey string) uint64 {
-	_ShareKey, _ := url.QueryUnescape(ShareKey)
-	SuperiorID, _ := strconv.ParseUint(strings.Split(_ShareKey, ":")[1], 10, 64)
-	return SuperiorID
-}
-
-/*func (Hashids)Encode(id uint64) string  {
-	tem:=make([]byte,8)
-	bytesBuffer := bytes.NewBuffer(tem)
-	binary.Write(bytesBuffer, binary.BigEndian, id)
-	bb:=bytesBuffer.Bytes()
-	mathrand.Seed(time.Now().UnixNano())
-	for i:=0;i<8;i++{
-		bb[i]=byte(mathrand.Int31n(int32(256)-int32(bb[i+8])))
-		bb[i+8] = bb[i+8]+bb[i]
-	}
-	cc:=hex.EncodeToString(bb)
-	return cc
-}
-func (Hashids)Decode(id string) uint64  {
-	bb,err:=hex.DecodeString(id)
-	if err!=nil{
-		return 0
-	}
-	for i:=0;i<8;i++{
-		pw:=bb[i+8]-bb[i]
-		if pw>255{
-			pw = 0
-		}
-		bb[i+8] = pw
-		bb[i]=0
-	}
-	bytesBuffer:= bytes.NewBuffer(bb[8:])
-	var ii uint64
-	binary.Read(bytesBuffer, binary.BigEndian, &ii)
-	return ii
-}*/
-
-//const public_PassWord = "96E5F29353C4A335D2FC4A71DFC8DA3D" // 公共加密字符串
-const public_PassWord = "96E5F29353C4A335D2FC4A71DFC8DA3D" // 公共加密字符串
+type SecretKey string
 
 //加密
-func CipherEncrypter(tkey, tvalue string) string {
+func CipherEncrypter(tkey SecretKey, tvalue string) string {
 	key := []byte(tkey)
 	plaintext := []byte(tvalue)
 
@@ -94,8 +47,9 @@ func CipherEncrypter(tkey, tvalue string) string {
 	return hex.EncodeToString(ciphertext)
 
 }
+
 //解密
-func CipherDecrypter(tkey string, crypter string) string {
+func CipherDecrypter(tkey SecretKey, crypter string) string {
 	key := []byte(tkey)
 	ciphertext, _ := hex.DecodeString(crypter)
 
@@ -121,15 +75,7 @@ func CipherDecrypter(tkey string, crypter string) string {
 	//fmt.Printf("%s", ciphertext)
 	return string(ciphertext)
 }
-func CipherDecrypterData(source string) string {
 
-	str := CipherDecrypter(public_PassWord, source)
-	return str
-}
-func CipherEncrypterData(source string) string {
-	str := CipherEncrypter(public_PassWord, source)
-	return str
-}
 func HMACSha1(text, key string) []byte {
 	keyByte := []byte(key)
 	mac := hmac.New(sha1.New, keyByte)
@@ -170,5 +116,3 @@ func Md5ByBytes(valeu []byte) string {
 	md5Str := hex.EncodeToString(ddf.Sum(nil))
 	return strings.ToUpper(md5Str)
 }
-
-

@@ -1,4 +1,4 @@
-package tool
+package encryption
 
 import (
 	"bytes"
@@ -8,12 +8,12 @@ import (
 	"log"
 )
 
-func AESCBCEncrypt(origin_data string)string{
-	iv := []byte{1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6}
+func AESCBCEncrypt(secretKey SecretKey, origin_data string) string {
+	iv := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6}
 	log.Println(hex.EncodeToString(iv))
 	var block cipher.Block
 	var err error
-	if block, err = aes.NewCipher([]byte(public_PassWord)); err != nil{
+	if block, err = aes.NewCipher([]byte(secretKey)); err != nil {
 		log.Println(err)
 		return ""
 	}
@@ -25,20 +25,20 @@ func AESCBCEncrypt(origin_data string)string{
 	return hex.EncodeToString(dst)
 }
 
-func AESCBCDecrypt(encrypt_data string)string{
-	iv := []byte{1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6}
+func AESCBCDecrypt(secretKey SecretKey, encrypt_data string) string {
+	iv := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6}
 
 	var block cipher.Block
 	var err error
-	if block, err = aes.NewCipher([]byte(public_PassWord)); err != nil{
+	if block, err = aes.NewCipher([]byte(secretKey)); err != nil {
 		log.Println(err)
 		return ""
 	}
 	encrypt := cipher.NewCBCDecrypter(block, iv)
 
-	var source [] byte
+	var source []byte
 
-	if source, err = hex.DecodeString(encrypt_data);err != nil{
+	if source, err = hex.DecodeString(encrypt_data); err != nil {
 		log.Println(err)
 		return ""
 	}
@@ -47,7 +47,6 @@ func AESCBCDecrypt(encrypt_data string)string{
 
 	return string(PKCS5Unpadding(dst))
 }
-
 
 func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
@@ -58,7 +57,7 @@ func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
 func PKCS5Unpadding(origData []byte) []byte {
 	length := len(origData)
 	unpadding := int(origData[length-1])
-	if length - unpadding<=0{
+	if length-unpadding <= 0 {
 		return []byte{}
 	}
 	return origData[:(length - unpadding)]
