@@ -11,16 +11,16 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"testing"
 	"time"
 )
 
 var gwebJson = "gweb.json"
 
 func init() {
-	testing.Init()
+	//testing.Init()
 	flag.StringVar(&gwebJson, "gweb", "gweb.json", "-gweb 指定gweb.json的位置")
 	flag.Parse()
+
 
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
 	content, err := ioutil.ReadFile(gwebJson)
