@@ -1,11 +1,13 @@
 package collections
 
 import (
+	"log"
 	"math/rand"
 	"net/url"
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func BenchmarkLinkList_Add(b *testing.B) {
@@ -57,9 +59,9 @@ func TestLinkList_Add(t *testing.T) {
 
 func TestLinkList_Get(t *testing.T) {
 	type fields struct {
-		RootNode *KV
-		Last     *KV
-		Map      map[string]*KV
+		RootNode *Node
+		Last     *Node
+		Map      map[string]*Node
 	}
 	type args struct {
 		key string
@@ -68,7 +70,7 @@ func TestLinkList_Get(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   *KV
+		want   *Node
 	}{
 		// TODO: Add test cases.
 	}
@@ -88,9 +90,9 @@ func TestLinkList_Get(t *testing.T) {
 
 func TestLinkList_GetMap(t *testing.T) {
 	type fields struct {
-		RootNode *KV
-		Last     *KV
-		Map      map[string]*KV
+		RootNode *Node
+		Last     *Node
+		Map      map[string]*Node
 	}
 	tests := []struct {
 		name   string
@@ -115,9 +117,9 @@ func TestLinkList_GetMap(t *testing.T) {
 
 func TestLinkList_GetValue(t *testing.T) {
 	type fields struct {
-		RootNode *KV
-		Last     *KV
-		Map      map[string]*KV
+		RootNode *Node
+		Last     *Node
+		Map      map[string]*Node
 	}
 	tests := []struct {
 		name   string
@@ -142,9 +144,9 @@ func TestLinkList_GetValue(t *testing.T) {
 
 func TestLinkList_SortDesc(t *testing.T) {
 	type fields struct {
-		RootNode *KV
-		Last     *KV
-		Map      map[string]*KV
+		RootNode *Node
+		Last     *Node
+		Map      map[string]*Node
 	}
 	tests := []struct {
 		name   string
@@ -159,4 +161,54 @@ func TestLinkList_SortDesc(t *testing.T) {
 		})
 	}
 	t.Log(v)
+}
+
+func TestLinkList_Sort(t *testing.T) {
+
+	v := &LinkList{}
+	v.Add("b","2")
+
+
+
+	abc:="abcdefghijklmnopqrstuvwxyz0123456789"
+
+	r:=rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i:=0;i< 1000;i++{
+
+
+		v.Add(
+			string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))]),
+			string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))])+string(abc[r.Intn(len(abc))]),
+
+			)
+
+	}
+
+	type args struct {
+		sortDescFunc func(a *Node, b *Node) int
+	}
+	tests := []struct {
+		name   string
+		args   args
+	}{
+		{ name: "TestLinkList_Sort_SortDescFunc",args: args{sortDescFunc:v.SortDescFunc}},
+		{ name: "TestLinkList_Sort_SortAscFunc",args: args{sortDescFunc:v.SortAscFunc}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			v.Sort(tt.args.sortDescFunc)
+
+			node:=v.RootNode
+			for node!=nil{
+				log.Println(node.Key,node.Value)
+				node = node.Next
+			}
+
+
+
+
+		})
+	}
 }
