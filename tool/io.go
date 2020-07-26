@@ -4,7 +4,6 @@ import (
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool/encryption"
-
 	"os"
 	"strconv"
 	"strings"
@@ -92,6 +91,29 @@ func WriteTempFile(b []byte, ContentType string) string {
 		//fmt.Println(f)
 	}
 	return path + fileName
+
+}
+func WriteFilePath(read []byte, subPath string, fileName string) (error, string) {
+
+	filePath := conf.Config.UploadDir + "/" + subPath
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		err = os.MkdirAll(filePath, os.ModePerm)
+		glog.Error(err)
+	}
+
+	fileUri := filePath + "/" + fileName
+
+	f, err := os.OpenFile(fileUri, os.O_RDWR|os.O_CREATE, os.ModePerm) //打开文件
+	if glog.Error(err) {
+		return err, ""
+	} else {
+		f.Write(read)
+		f.Sync()
+		f.Close()
+	}
+	return nil, fileUri
+	//tool.CheckError(err)
+	//fmt.Println(f)
 
 }
 func WriteFile(b []byte, ContentType string) string {
