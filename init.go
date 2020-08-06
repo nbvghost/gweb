@@ -2,6 +2,7 @@ package gweb
 
 import (
 	"flag"
+	"fmt"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
@@ -20,7 +21,6 @@ func init() {
 	//testing.Init()
 	flag.StringVar(&gwebJson, "gweb", "gweb.json", "-gweb 指定gweb.json的位置")
 	flag.Parse()
-
 
 	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
 	content, err := ioutil.ReadFile(gwebJson)
@@ -95,7 +95,7 @@ func init() {
 
 	dt, _ := tool.JsonMarshal(conf.Config)
 	//tool.Trace("当前配制信息：" + string(dt))
-	glog.Debugf("当前配制信息：\n%v\n", string(dt))
+	glog.Debug(fmt.Sprintf("当前配制信息：\n%v\n", string(dt)))
 
 	readDataFile := func() error {
 		mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
