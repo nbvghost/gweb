@@ -111,7 +111,7 @@ func init() {
 		}
 	}
 	err = readDataFile()
-	if glog.Error(err) {
+	if err != nil {
 		if strings.EqualFold(conf.JsonText, "") {
 			glog.Trace("当前未使用data.json 文件")
 		}
