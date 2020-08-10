@@ -1,7 +1,6 @@
 package gweb
 
 import (
-	"flag"
 	"fmt"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
@@ -15,15 +14,97 @@ import (
 	"time"
 )
 
-var gwebJson = "gweb.json"
+var gweb = "gweb.json"
 
+func initGo() {
+
+	readDataFile := func() error {
+		mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
+		if err != nil {
+			return err //glog.Trace("当前未使用data.json 文件")
+		} else {
+			//fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
+			conf.JsonText = string(mJsonData)
+			return nil
+			//err = json.Unmarshal(mJsonData, &conf.JsonData)
+			//glog.Error(err)
+			//return err
+		}
+	}
+	err := readDataFile()
+	if err != nil {
+		if strings.EqualFold(conf.JsonText, "") {
+			glog.Trace("当前未使用data.json 文件")
+		}
+	}
+
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		for range ticker.C {
+			readDataFile()
+			//time.Sleep(time.Second * 3)
+		}
+		ticker.Stop()
+	}()
+
+	go func() {
+		if conf.Config.SessionExpires > 0 {
+			for {
+				Sessions.Range(func(key, value interface{}) bool {
+					session := value.(*Session)
+					if time.Now().Unix()-session.LastOperationTime >= conf.Config.SessionExpires {
+						Sessions.DeleteSession(key.(string))
+					}
+					return true
+				})
+				time.Sleep(time.Second)
+			}
+		}
+
+	}()
+
+	go func() {
+
+		//err:=os.RemoveAll("temp")
+		//tool.CheckError(err)
+		for {
+
+			fileList, err := ioutil.ReadDir("temp")
+			if err != nil {
+				time.Sleep(time.Second)
+				continue
+			}
+			for _, v := range fileList {
+				//fmt.Println(k,v)
+				fileNodes, err := ioutil.ReadDir("temp" + "/" + v.Name())
+				for _, file := range fileNodes {
+					if time.Now().Unix() > file.ModTime().Add(time.Minute*3).Unix() {
+						err = os.Remove("temp" + "/" + v.Name() + "/" + file.Name())
+						glog.Error(err)
+					}
+				}
+				if len(fileNodes) <= 0 {
+					err = os.Remove("temp" + "/" + v.Name())
+					glog.Error(err)
+				}
+
+			}
+			time.Sleep(time.Second)
+		}
+
+	}()
+}
 func init() {
 	//testing.Init()
-	flag.StringVar(&gwebJson, "gweb", "gweb.json", "-gweb 指定gweb.json的位置")
-	flag.Parse()
+	//flag.StringVar(&gwebJson, "gweb", "gweb.json", "-gweb 指定gweb.json的位置")
+	LoadConfig(gweb)
+	initGo()
+}
 
-	//fmt.Println(fixPath("/fg/fg/sdf/gd/fg/dsg/sd/fg/sd////sdf/g/sd/g/sd/g////sgdf/g/////sg//ds"))
-	content, err := ioutil.ReadFile(gwebJson)
+//todo:暂时使用 LoadConfig 参数来指定 gweb.json 文件,后面改用 os.Args
+func LoadConfig(gwebFile string) {
+
+	content, err := ioutil.ReadFile(gwebFile)
 	if err != nil {
 		glog.Trace("缺少配制文件：gweb.json")
 		glog.Trace("使用默认配制：")
@@ -77,85 +158,9 @@ func init() {
 	conf.Config.UploadDirName = strings.Trim(conf.Config.UploadDirName, "/")
 	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage, "/")
 
-	go func() {
-		if conf.Config.SessionExpires > 0 {
-			for {
-				Sessions.Range(func(key, value interface{}) bool {
-					session := value.(*Session)
-					if time.Now().Unix()-session.LastOperationTime >= conf.Config.SessionExpires {
-						Sessions.DeleteSession(key.(string))
-					}
-					return true
-				})
-				time.Sleep(time.Second)
-			}
-		}
-
-	}()
-
 	dt, _ := tool.JsonMarshal(conf.Config)
 	//tool.Trace("当前配制信息：" + string(dt))
 	glog.Debug(fmt.Sprintf("当前配制信息：\n%v\n", string(dt)))
-
-	readDataFile := func() error {
-		mJsonData, err := ioutil.ReadFile(conf.Config.JsonDataPath)
-		if err != nil {
-			return err //glog.Trace("当前未使用data.json 文件")
-		} else {
-			//fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
-			conf.JsonText = string(mJsonData)
-			return nil
-			//err = json.Unmarshal(mJsonData, &conf.JsonData)
-			//glog.Error(err)
-			//return err
-		}
-	}
-	err = readDataFile()
-	if err != nil {
-		if strings.EqualFold(conf.JsonText, "") {
-			glog.Trace("当前未使用data.json 文件")
-		}
-	}
-
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		for range ticker.C {
-			readDataFile()
-			//time.Sleep(time.Second * 3)
-		}
-		ticker.Stop()
-	}()
-
-	go func() {
-
-		//err:=os.RemoveAll("temp")
-		//tool.CheckError(err)
-		for {
-
-			fileList, err := ioutil.ReadDir("temp")
-			if err != nil {
-				time.Sleep(time.Second)
-				continue
-			}
-			for _, v := range fileList {
-				//fmt.Println(k,v)
-				fileNodes, err := ioutil.ReadDir("temp" + "/" + v.Name())
-				for _, file := range fileNodes {
-					if time.Now().Unix() > file.ModTime().Add(time.Minute*3).Unix() {
-						err = os.Remove("temp" + "/" + v.Name() + "/" + file.Name())
-						glog.Error(err)
-					}
-				}
-				if len(fileNodes) <= 0 {
-					err = os.Remove("temp" + "/" + v.Name())
-					glog.Error(err)
-				}
-
-			}
-			time.Sleep(time.Second)
-		}
-
-	}()
 
 }
 
