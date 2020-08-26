@@ -38,6 +38,15 @@ func (list *ListString) String() string {
 	}
 	return txt
 }
+func (list *ListString) Contains(elem string) bool {
+
+	for index := range list.Collection {
+		if strings.EqualFold(list.Collection[index], elem) {
+			return true
+		}
+	}
+	return false
+}
 func (list *ListString) Append(elems string) {
 
 	list.Collection = append(list.Collection, elems)
