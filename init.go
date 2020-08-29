@@ -163,30 +163,46 @@ func LoadConfig(gwebFile string) {
 	glog.Debug(fmt.Sprintf("当前配制信息：\n%v\n", string(dt)))
 
 }
+func FileUploadAction(context *Context, dynamicDirName string) {
+
+	context.Request.ParseForm()
+	File, FileHeader, err := context.Request.FormFile("file")
+	if glog.Error(err) {
+		result := make(map[string]interface{})
+		result["Success"] = false
+		result["Message"] = err
+		result["Path"] = ""
+		result["Url"] = ""
+		rb, _ := tool.JsonMarshal(result)
+		context.Response.Write(rb)
+		return
+	}
+	defer File.Close()
+
+	err, fileName := tool.WriteWithFile(File, FileHeader, dynamicDirName)
+	if glog.Error(err) {
+		result := make(map[string]interface{})
+		result["Success"] = false
+		result["Message"] = err
+		result["Path"] = ""
+		result["Url"] = ""
+		rb, _ := tool.JsonMarshal(result)
+		context.Response.Write(rb)
+	} else {
+		result := make(map[string]interface{})
+		result["Success"] = true
+		result["Message"] = "OK"
+		result["Path"] = fileName
+		result["Url"] = "//" + conf.Config.Domain + "/file/load?path=" + fileName
+		rb, _ := tool.JsonMarshal(result)
+		context.Response.Write(rb)
+	}
+
+}
 
 type Static struct {
 }
 
-func (static Static) fileUp(writer http.ResponseWriter, request *http.Request) {
-
-	request.ParseForm()
-	File, FileHeader, err := request.FormFile("file")
-	glog.Error(err)
-	b, err := ioutil.ReadAll(File)
-	glog.Error(err)
-	defer File.Close()
-
-	fileName := tool.WriteFile(b, FileHeader.Header.Get("Content-Type"))
-	//base64Data := "data:" + FileHeader.Header.Get("Content-Type") + ";base64," + base64.StdEncoding.EncodeToString(b)
-	result := make(map[string]interface{})
-	result["Success"] = true
-	result["Message"] = "OK"
-	result["Data"] = "//" + conf.Config.Domain + "/file/load?path=" + fileName
-	rb, _ := tool.JsonMarshal(result)
-	writer.Write(rb)
-	//framework.WriteJSON(context, &framework.ActionStatus{true, "oK", base64Data})
-	//return &gweb.JsonResult{Data: &dao.ActionStatus{Success: true, Message: "ok", Data: fileName}}
-}
 func (static Static) fileNetLoad(writer http.ResponseWriter, request *http.Request) {
 	url := request.URL.Query().Get("url")
 	client := http.Client{}
@@ -215,7 +231,10 @@ func (static Static) fileLoad(writer http.ResponseWriter, request *http.Request)
 	path := request.URL.Query().Get("path")
 
 	urldd, err := url.Parse(path)
-	glog.Error(err)
+	if glog.Error(err) {
+		writer.Write([]byte(path))
+		return
+	}
 	if strings.EqualFold(urldd.Scheme, "") && strings.EqualFold(urldd.Host, "") {
 		http.Redirect(writer, request, "/"+path, http.StatusFound)
 	} else {

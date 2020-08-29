@@ -1,9 +1,12 @@
 package tool
 
 import (
+	"errors"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool/encryption"
+	"io/ioutil"
+	"mime/multipart"
 	"os"
 	"strconv"
 	"strings"
@@ -91,6 +94,84 @@ func WriteTempFile(b []byte, ContentType string) string {
 		//fmt.Println(f)
 	}
 	return path + fileName
+
+}
+func WriteWithFile(file multipart.File, header *multipart.FileHeader, dynamicDirName string) (error, string) {
+
+	if strings.EqualFold(dynamicDirName, "") {
+		return errors.New("dynamicDirName 不能为空"), ""
+	}
+
+	now := time.Now()
+	filePath := conf.Config.UploadDir + "/" + dynamicDirName + "/" + strconv.Itoa(now.Year()) + "/" + strconv.Itoa(int(now.Month())) + "/"
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		err = os.MkdirAll(filePath, os.ModePerm)
+		if glog.Error(err) {
+
+			return err, ""
+		}
+	}
+
+	fileBytes, err := ioutil.ReadAll(file)
+	if glog.Error(err) {
+
+		return err, ""
+	}
+
+	fileName := filePath + header.Filename
+	if fileInfo, err := os.Stat(fileName); err == nil {
+		if fileInfo.IsDir() {
+
+			return errors.New("目标是一个文件夹"), ""
+
+		}
+
+		f, err := os.OpenFile(fileName, os.O_RDONLY, os.ModePerm) //打开文件
+		if glog.Error(err) {
+
+			return err, ""
+		}
+
+		fBytes, err := ioutil.ReadAll(f)
+		if glog.Error(err) {
+
+			return err, ""
+		}
+
+		if strings.EqualFold(encryption.Md5ByBytes(fileBytes), encryption.Md5ByBytes(fBytes)) {
+			return nil, fileName
+		}
+
+		names := strings.Split(header.Filename, ".")
+		if len(names) == 0 {
+			fileName = filePath + header.Filename + "_copy"
+		} else if len(names) == 1 {
+			fileName = filePath + names[0] + "_copy"
+		} else {
+			fileName = filePath
+			for i := 0; i < len(names)-1; i++ {
+
+				if i == 0 {
+					fileName = fileName + names[i]
+				} else {
+					fileName = fileName + "_" + names[i]
+				}
+			}
+			fileName = fileName + "." + names[len(names)-1]
+		}
+
+	}
+
+	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, os.ModePerm) //打开文件
+	if glog.Error(err) {
+		return err, ""
+	} else {
+		f.Write(fileBytes)
+		f.Sync()
+		f.Close()
+	}
+	return nil, fileName
 
 }
 func WriteFilePath(read []byte, subPath string, fileName string) (error, string) {
