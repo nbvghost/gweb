@@ -15,29 +15,32 @@ import (
 	"time"
 )
 
+var FunctionMap = template.FuncMap{
+	"IncludeHTML":     includeHTML,
+	"Split":           splitFunc,
+	"FromJSONToMap":   fromJSONToMap,
+	"FromJSONToArray": fromJSONToArray,
+	//"CipherDecrypter": cipherDecrypter,
+	//"CipherEncrypter": cipherEncrypter,
+	"Int2String":     int2String,
+	"Uint2String":    uint2String,
+	"Float2String":   float2String,
+	"ToJSON":         toJSON,
+	"DateTimeFormat": DateTimeFormat,
+	"HTML":           HTML,
+	"UrlQueryEncode": urlQueryEncode,
+	"DigitAdd":       digitAdd,
+	"DigitSub":       digitSub,
+	"DigitMul":       digitMul,
+	"DigitDiv":       digitDiv,
+	"DigitMod":       digitMod,
+}
+
 func FuncMap() template.FuncMap {
 
-	return template.FuncMap{
-		"IncludeHTML":     includeHTML,
-		"Split":           splitFunc,
-		"FromJSONToMap":   fromJSONToMap,
-		"FromJSONToArray": fromJSONToArray,
-		//"CipherDecrypter": cipherDecrypter,
-		//"CipherEncrypter": cipherEncrypter,
-		"Int2String":     int2String,
-		"Uint2String":    uint2String,
-		"Float2String":   float2String,
-		"ToJSON":         toJSON,
-		"DateTimeFormat": DateTimeFormat,
-		"HTML":           HTML,
-		"UrlQueryEncode": urlQueryEncode,
-		"DigitAdd":       digitAdd,
-		"DigitSub":       digitSub,
-		"DigitMul":       digitMul,
-		"DigitDiv":       digitDiv,
-		"DigitMod":       digitMod,
-	}
+	return FunctionMap
 }
+
 func digitAdd(a, b interface{}, prec int) float64 {
 	_a := reflect.ValueOf(a).Convert(reflect.TypeOf(float64(0))).Float()
 	_b := reflect.ValueOf(b).Convert(reflect.TypeOf(float64(0))).Float()

@@ -13,14 +13,14 @@ type Interceptor interface {
 	Execute(Context *Context) (bool, Result)
 }
 
-func (inter *Interceptors) Len( ) int{
-	if inter==nil{
+func (inter *Interceptors) Len() int {
+	if inter == nil {
 		return 0
 	}
-	if inter.list==nil{
+	if inter.list == nil {
 		return 0
 	}
-	if len(inter.list)==0{
+	if len(inter.list) == 0 {
 		return 0
 	}
 	return len(inter.list)
@@ -40,7 +40,7 @@ func (inter *Interceptors) Add(value Interceptor) {
 		glog.Error(errors.New("已经存在"))
 	}
 }
-func (inter *Interceptors) ExecuteAll(c *BaseController) (bool, Result) {
+func (inter *Interceptors) ExecuteAll(c *BaseController, context *Context) (bool, Result) {
 	/*if inter.lock == nil {
 		inter.lock = &sync.Mutex{}
 	}
@@ -49,9 +49,9 @@ func (inter *Interceptors) ExecuteAll(c *BaseController) (bool, Result) {
 	for _, value := range inter.list {
 		//Execute(Session *Session,Request *http.Request) Result
 
-		bo, result := value.Execute(c.Context)
-		if bo == false {
-			return false, result
+		canNext, result := value.Execute(context)
+		if canNext == false {
+			return canNext, result
 		}
 	}
 	return true, nil

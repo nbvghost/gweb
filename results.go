@@ -1,6 +1,8 @@
 package gweb
 
 import (
+	"errors"
+	"github.com/nbvghost/gweb/thread"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -10,6 +12,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -21,6 +24,138 @@ import (
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool"
 )
+
+var CacheMaxFileSize int64 = 1024 * 1024 //
+var CacheFileTimeout int64 = 60 * 3      //秒
+
+type CacheFileItem struct {
+	Info         os.FileInfo
+	LastReadTime time.Time
+	Byte         []byte
+}
+type CacheFileByte struct {
+	m map[string]*CacheFileItem
+	sync.RWMutex
+}
+
+func (c *CacheFileByte) readFile(path string) (*CacheFileItem, error) {
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if fileInfo.IsDir() {
+		return nil, errors.New("目标路径是一个文件夹：" + path)
+	}
+
+	fileByte, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	if fileInfo.Size() > CacheMaxFileSize {
+
+		return &CacheFileItem{Info: fileInfo, LastReadTime: time.Now(), Byte: fileByte}, nil
+
+	}
+
+	item := &CacheFileItem{}
+	item.Info = fileInfo
+	item.LastReadTime = time.Now()
+
+	item.Byte = fileByte
+
+	c.Lock()
+	defer c.Unlock()
+	if c.m == nil {
+		c.m = make(map[string]*CacheFileItem)
+	}
+	c.m[path] = item
+	return item, nil
+}
+func (c *CacheFileByte) RemoveTimeout(path string) {
+
+	cache := c.get(path)
+	if cache != nil {
+
+		if time.Now().Unix()-cache.LastReadTime.Unix() > CacheFileTimeout {
+
+			c.Lock()
+			defer c.Unlock()
+			delete(c.m, path)
+
+		}
+
+	}
+
+}
+func (c *CacheFileByte) Read(path string) (*CacheFileItem, error) {
+
+	cache := c.get(path)
+	if cache == nil {
+		var err error
+		cache, err = c.readFile(path)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			return nil, err
+		}
+		if cache.Info.Size() != fileInfo.Size() || fileInfo.ModTime().Unix() != cache.Info.ModTime().Unix() {
+			_cache, _err := c.readFile(path)
+			if _err != nil {
+				return nil, _err
+			} else {
+				cache = _cache
+			}
+		}
+
+	}
+
+	return cache, nil
+}
+
+func (c *CacheFileByte) get(path string) *CacheFileItem {
+
+	c.RLock()
+	defer c.RUnlock()
+	return c.m[path]
+
+}
+
+var cache = &CacheFileByte{}
+
+func init() {
+
+	thread.NewCoroutine(func(option *thread.Option) {
+		for {
+
+			for path := range cache.m {
+
+				cache.RemoveTimeout(path)
+
+			}
+
+			time.Sleep(time.Second * 3)
+		}
+
+	}, func(option *thread.Option) {
+
+		glog.Trace("检测缓存文件协程，意外重启")
+
+	}, &thread.Option{ReRun: true})
+
+}
 
 type Result interface {
 	Apply(context *Context)
@@ -333,13 +468,15 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 	}
 
 	path = strings.TrimRight(path, "/")
-	b, err := ioutil.ReadFile(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
+	//b, err := ioutil.ReadFile(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
+	b, err := cache.Read(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
 	if err != nil {
 		//不存在
 		//fmt.Println(context.Request.Header)
 
 		var haveMIME = false
-		b, err := ioutil.ReadFile(conf.Config.ViewDir + path)
+		//b, err := ioutil.ReadFile(conf.Config.ViewDir + path)
+		b, err := cache.Read(conf.Config.ViewDir + path)
 		if err == nil {
 			re, err := regexp.Compile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
 			glog.Error(err)
@@ -355,7 +492,7 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 						context.Response.Header().Set("Content-Type", ce.ContentType+"; charset=utf-8")
 						//w.Header().Set("X-Content-Type-Options", "nosniff")
 						context.Response.WriteHeader(http.StatusOK)
-						context.Response.Write(b)
+						context.Response.Write(b.Byte)
 						haveMIME = true
 						break
 					}
@@ -384,14 +521,14 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 	} else {
 		context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 		context.Response.WriteHeader(http.StatusOK)
-		t, err := template.New("default").Funcs(tool.FuncMap()).Parse(string(b))
+		t, err := template.New("default").Funcs(tool.FuncMap()).Parse(string(b.Byte))
 		glog.Error(err)
 
 		data := make(map[string]interface{})
 		data["session"] = context.Session.Attributes.GetMap()
 		data["query"] = tool.QueryParams(context.Request.URL.Query())
 
-		t.Execute(context.Response, data)
+		glog.Error(t.Execute(context.Response, data))
 	}
 
 }
@@ -436,65 +573,73 @@ func (r *EmptyResult) Apply(context *Context) {
 
 //只映射已经定义的后缀模板文件
 type HTMLResult struct {
-	Name   string
-	Params map[string]interface{}
+	Name       string
+	StatusCode int
+	Params     map[string]interface{}
+	Template   []string //读取当前目录下 template 文件夹下的模板
 }
 
 func (r *HTMLResult) Apply(context *Context) {
 
-	path := context.Request.URL.Path
+	path, filename := filepath.Split(context.Request.URL.Path)
+	//path := context.Request.URL.Path
 
-	var b []byte
+	var b *CacheFileItem
 	var err error
 
 	if strings.EqualFold(r.Name, "") {
 		//html 只处理，已经定义后缀名的文件
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
+		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + filename + conf.Config.ViewSuffix))
 	} else {
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
+		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + r.Name + conf.Config.ViewSuffix))
 	}
 	if err != nil {
 		//判断是否有默认页面
 		//fmt.Println(fixPath(Config.ViewDir + "/" + path +"/"+ Config.DefaultPage))
-		b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
+		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
 		if err != nil {
 			(&ViewActionMappingResult{}).Apply(context)
 			return
 		}
 	}
 
-	/*if err != nil {
+	//t, err := template.New("default").Funcs(FuncMap).Parse(string(b))
+	t := template.New("HTMLResult").Funcs(tool.FuncMap())
 
-		if strings.EqualFold(r.Name, "") {
-			b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
+	for index := range r.Template {
+
+		tpath := r.Template[index]
+		var err error
+		var tt *template.Template
+		if strings.Contains(tpath, "*") {
+			tt, err = t.ParseGlob(conf.Config.ViewDir + "/" + tpath)
 		} else {
-			b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
+			tt, err = t.ParseFiles(conf.Config.ViewDir + "/" + tpath)
 		}
 
 		if err != nil {
-			//判断是否有默认页面
-			//fmt.Println(fixPath(Config.ViewDir + "/" + path +"/"+ Config.DefaultPage))
-			b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
-			if err != nil {
-				(&ViewActionMappingResult{}).Apply(context)
-				return
-			}
+			glog.Trace(err)
+		} else {
+			t = tt
 		}
+	}
 
-	}*/
-
-	//t, err := template.New("default").Funcs(FuncMap).Parse(string(b))
-	t := template.New("default").Funcs(tool.FuncMap())
-	t, err = t.Parse(string(b))
+	t, err = t.Parse(string(b.Byte))
 	//template.Must(t.Parse(string(b)))
-	if err != nil {
-		log.Println(err)
-		t, err = template.New("").Parse(err.Error())
+	if glog.Error(err) {
+		t, err = template.New("HTMLResult").Parse(err.Error())
 	}
 	data := createPageParams(context, r.Params)
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	context.Response.WriteHeader(http.StatusOK)
-	t.Execute(context.Response, data)
+	if r.StatusCode == 0 {
+		context.Response.WriteHeader(http.StatusOK)
+	} else {
+		context.Response.WriteHeader(r.StatusCode)
+	}
+	glog.Error(t.Execute(context.Response, data))
 }
 func createPageParams(context *Context, Params map[string]interface{}) map[string]interface{} {
 	data := make(map[string]interface{})
@@ -566,18 +711,18 @@ type HtmlPlainResult struct {
 
 func (r *HtmlPlainResult) Apply(context *Context) {
 
-	t := template.New("default").Funcs(tool.FuncMap())
+	t := template.New("HtmlPlainResult").Funcs(tool.FuncMap())
 	t, err := t.Parse(r.Data)
 	//template.Must(t.Parse(string(b)))
 	if err != nil {
 		log.Println(err)
-		t, err = template.New("").Parse(err.Error())
+		t, err = template.New("HtmlPlainResult").Parse(err.Error())
 	}
 
 	data := createPageParams(context, r.Params)
 	context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 	context.Response.WriteHeader(http.StatusOK)
-	t.Execute(context.Response, data)
+	glog.Error(t.Execute(context.Response, data))
 
 	//context.Response.Header().Set("Content-Type", "text/xml; charset=utf-8")
 	//context.Response.WriteHeader(http.StatusOK)
@@ -634,18 +779,12 @@ type ImageResult struct {
 
 func (r *ImageResult) Apply(context *Context) {
 
-	file, err := os.Open(r.FilePath)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-
-	buff, err := ioutil.ReadAll(file)
+	file, err := cache.Read(r.FilePath)
 	if err != nil {
 		return
 	}
 
-	context.Response.Write(buff)
+	context.Response.Write(file.Byte)
 
 	//context.Response.Header().Set("Location", r.Url)
 	//context.Response.WriteHeader(http.StatusFound)

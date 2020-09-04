@@ -1,6 +1,8 @@
 package gweb
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestErrorResult_Apply(t *testing.T) {
 	type args struct {
@@ -196,6 +198,33 @@ func TestImageBytesResult_Apply(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.r.Apply(tt.args.context)
+		})
+	}
+}
+
+func TestCacheFileByte_Read(t *testing.T) {
+
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "TestCacheFileByte_Read", args: args{path: "gweb_test.go"}, wantErr: false},
+		{name: "TestCacheFileByte_Read", args: args{path: "interceptor.go"}, wantErr: false},
+	}
+	c := &CacheFileByte{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			got, err := c.Read(tt.args.path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Read() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			t.Log(got)
 		})
 	}
 }

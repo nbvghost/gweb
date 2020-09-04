@@ -108,8 +108,8 @@ func LoadConfig(gwebFile string) {
 	if err != nil {
 		glog.Trace("缺少配制文件：gweb.json")
 		glog.Trace("使用默认配制：")
-		conf.Config.ViewDir = "view"
 
+		conf.Config.ViewDir = "view"
 		conf.Config.ResourcesDir = "resources"
 		conf.Config.ResourcesDirName = "resources"
 

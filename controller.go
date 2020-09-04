@@ -184,12 +184,12 @@ func (lm *ListMapping) Add(e *Mapping) {
 }
 
 type BaseController struct {
+	//Context          *Context
 	RequestMapping   *ListMapping //map[string]*function
-	Context          *Context
 	Root             string
 	Interceptors     Interceptors
 	ParentController *BaseController
-	sync.RWMutex
+	//sync.RWMutex
 }
 
 func (c *BaseController) Init() {
@@ -468,15 +468,15 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	session.LastRequestURL = r.URL
 
-	c.Lock()
+	//c.Lock()
 	w.Header().Add("Server-Name", conf.Config.Name)
 	w.Header().Add("Server-Ver", conf.Config.Ver)
-	c.Unlock()
+	//c.Unlock()
 
 	jsonData := make(map[string]interface{})
 	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
 	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData}
-	c.Context = context
+	//c.Context = context
 
 	Method := context.Request.Method
 
@@ -484,7 +484,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f, context.PathParams = c.pathParams(Method, context.Request.URL.Path)
 
 	if c.Interceptors.Len() > 0 {
-		bo, executeResult := c.Interceptors.ExecuteAll(c)
+		bo, executeResult := c.Interceptors.ExecuteAll(c, context)
 		if bo == false {
 			if executeResult != nil {
 				executeResult.Apply(context)
@@ -629,57 +629,6 @@ func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
 
 	return true, result
 
-	/*fmt.Println("----------")
-
-
-
-
-
-
-	//获取地址参数
-	Submatchs:=re.FindAllStringSubmatch(_RoutePath,-1)
-	//SubmatchIndexs:=re.FindAllStringSubmatchIndex(_RoutePath,-1)
-	if len(Submatchs)==0{
-		return false, pathData
-	}
-
-	//fmt.Println(Submatchs,"Submatchs")
-
-
-	paths:=re.Split(_RoutePath,-1)
-	//fmt.Println(paths)
-
-	//lastEndIndex:=0
-	//"sdfsd/dfd5f4ds_dsfdsf/sdf/dfdf_sd/dfsdsfds-dfdsfdf-dfdf/f"
-	//"sdfsd/{dfdsfs}_dsfdsf/{DFdfd}/dfdf_{sdfdsfsdf}/{dfdsfddd}-dfds{fd}-{jk}/f"
-	varNameIndex:=0
-	for index:=range paths {
-		//_Path=paths[index]
-		dfd:=strings.Index(_Path,paths[index])
-		if dfd>0{
-
-			//fmt.Println("键=值",string(Submatchs[varNameIndex][1])+"="+string(_Path[0:dfd]))
-			pathData[string(Submatchs[varNameIndex][1])]=string(_Path[0:dfd])
-			varNameIndex++
-		}else if dfd<0{
-			return false, pathData
-		}
-
-		_Path=string(_Path[dfd+len(paths[index]):])
-
-	}
-	if strings.EqualFold(_Path,"")==false{
-		//fmt.Println("---------Path------------------")
-		//fmt.Println(_Path)
-		//fmt.Println(varNameIndex)
-		//fmt.Println(Submatchs)
-		//varNameIndex++
-		//fmt.Println("键=值",string(Submatchs[varNameIndex][1])+"="+string(_Path))
-		if varNameIndex<=len(Submatchs)-1{
-			pathData[string(Submatchs[varNameIndex][1])]=_Path
-		}
-	}
-	return true, pathData*/
 }
 
 func fixPath(path string) string {

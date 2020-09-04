@@ -6,24 +6,6 @@ import (
 	"testing"
 )
 
-func Test_fileUp(t *testing.T) {
-	type args struct {
-		writer  http.ResponseWriter
-		request *http.Request
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-		(Static{}).fileUp(tt.args.writer, tt.args.request)
-		})
-	}
-}
-
 func Test_fileNetLoad(t *testing.T) {
 	type args struct {
 		writer  http.ResponseWriter
