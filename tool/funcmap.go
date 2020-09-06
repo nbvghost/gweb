@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/nbvghost/glog"
+	"github.com/nbvghost/gweb/tool/number"
 	"html/template"
 	"net/url"
 	"os"
@@ -22,9 +23,8 @@ var FunctionMap = template.FuncMap{
 	"FromJSONToArray": fromJSONToArray,
 	//"CipherDecrypter": cipherDecrypter,
 	//"CipherEncrypter": cipherEncrypter,
-	"Int2String":     int2String,
-	"Uint2String":    uint2String,
-	"Float2String":   float2String,
+	"ParseFloat":     parseFloat,
+	"ParseInt":       parseInt,
 	"ToJSON":         toJSON,
 	"DateTimeFormat": DateTimeFormat,
 	"HTML":           HTML,
@@ -96,16 +96,13 @@ func toJSON(source interface{}) string {
 	glog.Error(err)
 	return string(b)
 }
-func int2String(source interface{}) string {
+func parseInt(source interface{}) int {
 
-	return strconv.FormatInt((source.(int64)), 10)
+	return number.ParseInt(source)
 }
-func uint2String(source interface{}) string {
 
-	return strconv.FormatUint((source.(uint64)), 10)
-}
-func float2String(source interface{}) string {
-	return strconv.FormatFloat((source.(float64)), 'f', -1, 64)
+func parseFloat(source interface{}) float64 {
+	return number.ParseFloat(source)
 }
 
 /*func cipherDecrypter(source string) string {
