@@ -1,9 +1,12 @@
 package gweb
 
 import (
+	"bytes"
 	"errors"
 	"github.com/nbvghost/gweb/thread"
+	"github.com/nbvghost/gweb/tool/encryption"
 	"html/template"
+
 	"io"
 	"io/ioutil"
 	"log"
@@ -583,6 +586,12 @@ func (r *HTMLResult) Apply(context *Context) {
 
 	path, filename := filepath.Split(context.Request.URL.Path)
 	//path := context.Request.URL.Path
+	var fullPath = context.Request.URL.Path
+	if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
+		fullPath = fullPath + "?" + context.Request.URL.RawQuery
+	}
+
+	fullPathMd5 := encryption.Md5ByString(fullPath)
 
 	var b *CacheFileItem
 	var err error
@@ -593,7 +602,7 @@ func (r *HTMLResult) Apply(context *Context) {
 		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + filename + conf.Config.ViewSuffix))
 	} else {
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + r.Name + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + context.RootPath + "/" + r.Name + conf.Config.ViewSuffix))
 	}
 	if err != nil {
 		//判断是否有默认页面
@@ -639,7 +648,22 @@ func (r *HTMLResult) Apply(context *Context) {
 	} else {
 		context.Response.WriteHeader(r.StatusCode)
 	}
-	glog.Error(t.Execute(context.Response, data))
+	buffer := bytes.NewBuffer([]byte{})
+	glog.Error(t.Execute(buffer, data))
+	if tool.IsFileExist("cache") == false {
+		glog.Error(os.Mkdir("cache", os.ModePerm))
+	}
+	dataByte := buffer.Bytes()
+	//dataByte=strings.ReplaceAll(dataByte,"\r\n","")
+
+	rp := regexp.MustCompile(`\s{2,}`)
+	dataByte = rp.ReplaceAll(dataByte, []byte(" "))
+
+	rp = regexp.MustCompile(`[\r\n]`)
+	dataByte = rp.ReplaceAll(dataByte, []byte{})
+
+	glog.Error(ioutil.WriteFile("cache/"+fullPathMd5, []byte(dataByte), os.ModePerm))
+	context.Response.Write([]byte(dataByte))
 }
 func createPageParams(context *Context, Params map[string]interface{}) map[string]interface{} {
 	data := make(map[string]interface{})
@@ -649,6 +673,7 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 	data["debug"] = conf.Config.Debug
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
+	data["rootPath"] = context.RootPath
 
 	jsonData := make(map[string]interface{})
 	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)

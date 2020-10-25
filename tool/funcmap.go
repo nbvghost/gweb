@@ -6,6 +6,7 @@ import (
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/tool/number"
 	"html/template"
+
 	"net/url"
 	"os"
 	"reflect"
@@ -33,6 +34,7 @@ var FunctionMap = template.FuncMap{
 	"DigitSub":       digitSub,
 	"DigitMul":       digitMul,
 	"DigitDiv":       digitDiv,
+	"MakeArray":      makeArray,
 	"DigitMod":       digitMod,
 }
 
@@ -73,6 +75,10 @@ func digitMod(a, b interface{}) uint64 {
 	///f, _ := strconv.ParseFloat(strconv.FormatFloat(_a%_b, 'f', prec, 64), 64)
 	return uint64(_a) % uint64(_b)
 
+}
+func makeArray(len int) []int {
+
+	return make([]int, len)
 }
 func urlQueryEncode(source map[string]string) template.URL {
 	//fmt.Println(source)

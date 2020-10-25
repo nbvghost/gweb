@@ -4,7 +4,10 @@ import (
 	"errors"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
+	"github.com/nbvghost/gweb/tool/encryption"
+	"io/ioutil"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"sort"
@@ -22,6 +25,7 @@ type Context struct {
 	Request    *http.Request
 	Session    *Session
 	PathParams map[string]string
+	RootPath   string //解析后的路径
 	Data       map[string]interface{}
 }
 
@@ -105,7 +109,7 @@ func ALLMethod(RoutePath string, call func(context *Context) Result) function {
 | "CONNECT"                ; Section 9.9*/
 type IController interface {
 	Init()
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
+	ServeHTTP(w http.ResponseWriter, r *http.Request, rootPath string)
 	addRequestMapping(key string, f *function) *ListMapping
 }
 
@@ -183,10 +187,12 @@ func (lm *ListMapping) Add(e *Mapping) {
 	})
 }
 
+var controllerMap = make(map[string]interface{})
+
 type BaseController struct {
 	//Context          *Context
 	RequestMapping   *ListMapping //map[string]*function
-	Root             string
+	RoutePath        string       //定义路由的路径
 	Interceptors     Interceptors
 	ParentController *BaseController
 	//sync.RWMutex
@@ -213,21 +219,17 @@ func (c *BaseController) addRequestMapping(key string, f *function) *ListMapping
 
 func (c *BaseController) NewController(path string, controller IController) {
 
-	defer func() {
-		if r := recover(); r != nil {
-			//_, file, line, _ := runtime.Caller(1)
-			//log.Println(file, line, r)
-			glog.Trace(r)
-			debug.PrintStack()
-		}
-	}()
+	if strings.Contains(path, "//") {
+		panic(errors.New("重复的//"))
+		return
+	}
 
 	if strings.EqualFold(path, "/") || strings.EqualFold(path, "") {
 		path = "/"
 	} else {
 		path = "/" + strings.Trim(path, "/") + "/"
 	}
-	c.Root = path
+	c.RoutePath = path
 	//path = fixPath(path)
 	/*if !strings.EqualFold(path[len(path)-1:], "/") {
 
@@ -238,7 +240,34 @@ func (c *BaseController) NewController(path string, controller IController) {
 		return
 	}
 	controller.Init()
-	http.Handle(path, c)
+	//http.Handle(path, c)
+
+	pathList := strings.Split(strings.Trim(path, "/"), "/")
+
+	var lastItem map[string]interface{} = controllerMap
+	for index := range pathList {
+
+		if _, ok := lastItem[pathList[index]]; !ok {
+
+			if index == len(pathList)-1 {
+				//最后一项
+				lastItem[pathList[index]] = map[string]interface{}{"": controller}
+			} else {
+				lastItem[pathList[index]] = make(map[string]interface{})
+				lastItem = lastItem[pathList[index]].(map[string]interface{})
+			}
+
+		} else {
+			if index == len(pathList)-1 {
+				lastItem[pathList[index]].(map[string]interface{})[""] = controller
+				//panic(errors.New("重复的路由："+pathList[index]))
+
+			} else {
+				lastItem = lastItem[pathList[index]].(map[string]interface{})
+			}
+		}
+
+	}
 
 }
 func (c *BaseController) AddSubController(path string, isubc IController) {
@@ -254,10 +283,10 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 		path = strings.Trim(path, "/") + "/"
 	}
 
-	if strings.EqualFold(c.Root, "/") {
-		path = c.Root + path
+	if strings.EqualFold(c.RoutePath, "/") {
+		path = c.RoutePath + path
 	} else {
-		path = c.Root + path
+		path = c.RoutePath + path
 	}
 
 	/*path = fixPath(c.Root + "/" + path)
@@ -268,7 +297,7 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	value := reflect.Indirect(reflect.ValueOf(isubc))
 	//fmt.Println(value.Interface())
 
-	RootField := value.FieldByName("Root")
+	RootField := value.FieldByName("RoutePath")
 
 	//fmt.Println(RootField)
 	//fmt.Println("----")
@@ -304,11 +333,37 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	subMapping := isubc.addRequestMapping(key, &_function)
 	subMapping.Range(func(index int, e *Mapping) bool {
 
-		c.addRequestMapping(e.Key, e.F)
+		//isubc.addRequestMapping(e.Key, e.F)
 		return true
 	})
 
 	//http.Handle(path, isubc)
+
+	pathList := strings.Split(strings.TrimLeft(strings.TrimRight(path, "/"), "/"), "/")
+
+	var lastItem map[string]interface{} = controllerMap
+	for index := range pathList {
+
+		if _, ok := lastItem[pathList[index]]; !ok {
+
+			if index == len(pathList)-1 {
+				//最后一项
+				lastItem[pathList[index]] = map[string]interface{}{"": isubc}
+			} else {
+				lastItem[pathList[index]] = make(map[string]interface{})
+				lastItem = lastItem[pathList[index]].(map[string]interface{})
+			}
+
+		} else {
+			if index == len(pathList)-1 {
+				//panic(errors.New("重复的路由"))
+				lastItem[pathList[index]].(map[string]interface{})[""] = isubc
+			} else {
+				lastItem = lastItem[pathList[index]].(map[string]interface{})
+			}
+		}
+
+	}
 
 }
 
@@ -340,7 +395,7 @@ func (c *BaseController) AddHandler(_function function) {
 	//_function.RoutePath = strings.Trim(_function.RoutePath,"/")
 	_function.RoutePath = strings.TrimLeft(_function.RoutePath, "/")
 
-	_pattern = c.Root + _function.RoutePath
+	_pattern = c.RoutePath + _function.RoutePath
 
 	if validateRoutePath(_pattern) == false {
 		return
@@ -435,7 +490,50 @@ func (c *BaseController) doAction(context *Context, f *function) Result {
 
 	return result
 }
-func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	glog.Debug(r.Method, r.URL)
+
+	path, _ := filepath.Split(r.URL.Path)
+
+	pathList := strings.Split(strings.Trim(path, "/"), "/")
+
+	RootPathList := make([]string, 0)
+
+	var lastItem = controllerMap
+	for index := range pathList {
+
+		if value, ok := lastItem[pathList[index]]; ok {
+
+			lastItem = value.(map[string]interface{})
+			RootPathList = append(RootPathList, pathList[index])
+		} else {
+
+			for k, _ := range lastItem {
+
+				re, err := regexp.Compile("\\{(.*?)+\\}")
+				glog.Error(err)
+				if re.MatchString(k) {
+
+					lastItem = lastItem[k].(map[string]interface{})
+					RootPathList = append(RootPathList, pathList[index])
+				}
+			}
+
+		}
+
+	}
+
+	controller, ok := lastItem[""].(IController)
+	if ok == false {
+		controller, ok = lastItem[""].(map[string]interface{})[""].(IController)
+		if ok == false {
+			controller = &BaseController{}
+		}
+	}
+	controller.ServeHTTP(w, r, "/"+strings.Join(RootPathList, "/")+"/")
+
+}
+func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootPath string) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -476,7 +574,7 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jsonData := make(map[string]interface{})
 	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
 	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData}
-	//c.Context = context
+	context.RootPath = rootPath
 
 	Method := context.Request.Method
 
@@ -491,6 +589,27 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+	}
+
+	//f 如果为空，表明没有对应的action，则直接动态渲染
+	if f != nil && conf.Config.Debug == false {
+
+		var fullPath = context.Request.URL.Path
+		if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
+			fullPath = fullPath + "?" + context.Request.URL.RawQuery
+		}
+
+		fullPathMd5 := encryption.Md5ByString(fullPath)
+
+		if tool.IsFileExist("cache/" + fullPathMd5) {
+			b, err := ioutil.ReadFile("cache/" + fullPathMd5)
+			if glog.Error(err) == false {
+				context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+				context.Response.Write(b)
+				return
+			}
+		}
+
 	}
 
 	result := c.doAction(context, f)

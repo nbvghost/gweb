@@ -266,7 +266,7 @@ func TestBaseController_ServeHTTP(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.c.ServeHTTP(tt.args.w, tt.args.r)
+			tt.c.ServeHTTP(tt.args.w, tt.args.r, "")
 		})
 	}
 }
@@ -354,6 +354,23 @@ func Test_fixPath(t *testing.T) {
 			if got := fixPath(tt.args.path); got != tt.want {
 				t.Errorf("fixPath() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestServeHTTP(t *testing.T) {
+	type args struct {
+		w http.ResponseWriter
+		r *http.Request
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{name: "TestServeHTTP"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 		})
 	}
 }
