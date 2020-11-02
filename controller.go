@@ -29,6 +29,17 @@ type Context struct {
 	Data       map[string]interface{}
 }
 
+func (c *Context) Clone() Context {
+	return Context{
+		Response:   c.Response,
+		Request:    c.Request,
+		Session:    c.Session,
+		PathParams: c.PathParams,
+		RootPath:   c.RootPath,
+		Data:       c.Data,
+	}
+}
+
 type function struct {
 	Method    string
 	RoutePath string

@@ -1,11 +1,12 @@
 package gweb
 
 import (
-	"bytes"
 	"errors"
+	"fmt"
 	"github.com/nbvghost/gweb/thread"
 	"github.com/nbvghost/gweb/tool/encryption"
 	"html/template"
+	"net/http/httptest"
 
 	"io"
 	"io/ioutil"
@@ -160,6 +161,24 @@ func init() {
 
 }
 
+var _ Result = (*ErrorResult)(nil)
+var _ Result = (*SingleHostReverseProxyResult)(nil)
+var _ Result = (*SingleHostForwardProxyResult)(nil)
+var _ Result = (*ViewActionMappingResult)(nil)
+var _ Result = (*ViewResult)(nil)
+var _ Result = (*EmptyResult)(nil)
+var _ Result = (*CacheHTMLResult)(nil)
+var _ Result = (*HTMLResult)(nil)
+var _ Result = (*JsonResult)(nil)
+var _ Result = (*FileServerResult)(nil)
+var _ Result = (*HtmlPlainResult)(nil)
+var _ Result = (*TextResult)(nil)
+var _ Result = (*JavaScriptResult)(nil)
+var _ Result = (*XMLResult)(nil)
+var _ Result = (*RedirectToUrlResult)(nil)
+var _ Result = (*ImageResult)(nil)
+var _ Result = (*ImageBytesResult)(nil)
+
 type Result interface {
 	Apply(context *Context)
 }
@@ -168,9 +187,16 @@ type ErrorResult struct {
 	Error error
 }
 
-func (r *ErrorResult) Apply(context *Context) {
-	http.Error(context.Response, r.Error.Error(), http.StatusNotFound)
+func NewErrorResult(err error) *ErrorResult {
+	return &ErrorResult{Error: err}
+}
 
+func (r *ErrorResult) Apply(context *Context) {
+	if r.Error != nil {
+		http.Error(context.Response, r.Error.Error(), http.StatusNotFound)
+	} else {
+		http.Error(context.Response, "error", http.StatusNotFound)
+	}
 }
 
 type SingleHostReverseProxyResult struct {
@@ -574,6 +600,58 @@ func (r *EmptyResult) Apply(context *Context) {
 
 }
 
+//只映射已经定义的后缀模板文件，并生成html缓存文件
+type CacheHTMLResult struct {
+	HTMLResult
+	OID uint64
+}
+
+func (r *CacheHTMLResult) Apply(context *Context) {
+	if r.OID == 0 {
+		NewErrorResult(errors.New("CacheHTMLResult 结果，必须指定OID值")).Apply(context)
+		return
+	}
+	responseRecorder := httptest.NewRecorder()
+	copyContext := context.Clone()
+	copyContext.Response = responseRecorder
+	r.HTMLResult.Apply(&copyContext)
+
+	context.Response.WriteHeader(responseRecorder.Code)
+	for key := range responseRecorder.Header() {
+		context.Response.Header().Set(key, responseRecorder.Header().Get(key))
+	}
+	dataByte, err := ioutil.ReadAll(responseRecorder.Body)
+	if glog.Error(err) {
+		NewErrorResult(err).Apply(context)
+		return
+	}
+
+	//path, filename := filepath.Split(context.Request.URL.Path)
+	//path := context.Request.URL.Path
+	var fullPath = context.Request.URL.Path
+	if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
+		fullPath = fullPath + "?" + context.Request.URL.RawQuery
+	}
+
+	fullPathMd5 := encryption.Md5ByString(fullPath)
+
+	cacheDir := fmt.Sprintf("cache/%v", r.OID)
+	cacheFile := cacheDir + "/" + fullPathMd5
+
+	if tool.IsFileExist(cacheDir) == false {
+		glog.Error(os.Mkdir(cacheDir, os.ModePerm))
+	}
+
+	rp := regexp.MustCompile(`\s{2,}`)
+	dataByte = rp.ReplaceAll(dataByte, []byte(" "))
+
+	rp = regexp.MustCompile(`[\r\n]`)
+	dataByte = rp.ReplaceAll(dataByte, []byte{})
+
+	glog.Error(ioutil.WriteFile(cacheFile, dataByte, os.ModePerm))
+	context.Response.Write(dataByte)
+}
+
 //只映射已经定义的后缀模板文件
 type HTMLResult struct {
 	Name       string
@@ -585,13 +663,6 @@ type HTMLResult struct {
 func (r *HTMLResult) Apply(context *Context) {
 
 	path, filename := filepath.Split(context.Request.URL.Path)
-	//path := context.Request.URL.Path
-	var fullPath = context.Request.URL.Path
-	if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
-		fullPath = fullPath + "?" + context.Request.URL.RawQuery
-	}
-
-	fullPathMd5 := encryption.Md5ByString(fullPath)
 
 	var b *CacheFileItem
 	var err error
@@ -648,22 +719,8 @@ func (r *HTMLResult) Apply(context *Context) {
 	} else {
 		context.Response.WriteHeader(r.StatusCode)
 	}
-	buffer := bytes.NewBuffer([]byte{})
-	glog.Error(t.Execute(buffer, data))
-	if tool.IsFileExist("cache") == false {
-		glog.Error(os.Mkdir("cache", os.ModePerm))
-	}
-	dataByte := buffer.Bytes()
-	//dataByte=strings.ReplaceAll(dataByte,"\r\n","")
 
-	rp := regexp.MustCompile(`\s{2,}`)
-	dataByte = rp.ReplaceAll(dataByte, []byte(" "))
-
-	rp = regexp.MustCompile(`[\r\n]`)
-	dataByte = rp.ReplaceAll(dataByte, []byte{})
-
-	glog.Error(ioutil.WriteFile("cache/"+fullPathMd5, []byte(dataByte), os.ModePerm))
-	context.Response.Write([]byte(dataByte))
+	glog.Error(t.Execute(context.Response, data))
 }
 func createPageParams(context *Context, Params map[string]interface{}) map[string]interface{} {
 	data := make(map[string]interface{})
