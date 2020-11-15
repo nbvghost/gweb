@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/nbvghost/gweb/thread"
 	"github.com/nbvghost/gweb/tool/encryption"
+
 	"html/template"
 	"net/http/httptest"
 
@@ -550,7 +551,7 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 	} else {
 		context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 		context.Response.WriteHeader(http.StatusOK)
-		t, err := template.New("default").Funcs(tool.FuncMap()).Parse(string(b.Byte))
+		t, err := template.New("default").Funcs(NewFuncMap(context)).Parse(string(b.Byte))
 		glog.Error(err)
 
 		data := make(map[string]interface{})
@@ -639,7 +640,7 @@ func (r *CacheHTMLResult) Apply(context *Context) {
 	cacheFile := cacheDir + "/" + fullPathMd5
 
 	if tool.IsFileExist(cacheDir) == false {
-		glog.Error(os.Mkdir(cacheDir, os.ModePerm))
+		glog.Error(os.MkdirAll(cacheDir, os.ModePerm))
 	}
 
 	rp := regexp.MustCompile(`\s{2,}`)
@@ -687,7 +688,7 @@ func (r *HTMLResult) Apply(context *Context) {
 	}
 
 	//t, err := template.New("default").Funcs(FuncMap).Parse(string(b))
-	t := template.New("HTMLResult").Funcs(tool.FuncMap())
+	t := template.New("HTMLResult").Funcs(NewFuncMap(context))
 
 	for index := range r.Template {
 
@@ -745,7 +746,7 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 
 type JsonResult struct {
 	Data interface{}
-	sync.RWMutex
+	///sync.RWMutex
 }
 
 /*func (r *JsonResult)encodeJson() (error,[]byte)  {
@@ -793,7 +794,7 @@ type HtmlPlainResult struct {
 
 func (r *HtmlPlainResult) Apply(context *Context) {
 
-	t := template.New("HtmlPlainResult").Funcs(tool.FuncMap())
+	t := template.New("HtmlPlainResult").Funcs(NewFuncMap(context))
 	t, err := t.Parse(r.Data)
 	//template.Must(t.Parse(string(b)))
 	if err != nil {

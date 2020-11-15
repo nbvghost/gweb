@@ -37,7 +37,7 @@ func Test_fileLoad(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			(Static{}).fileLoad(tt.args.writer, tt.args.request)
+			(Static{}).FileLoad(tt.args.writer, tt.args.request)
 		})
 	}
 }

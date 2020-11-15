@@ -103,7 +103,7 @@ func WriteWithFile(file multipart.File, header *multipart.FileHeader, dynamicDir
 	}
 
 	now := time.Now()
-	filePath := conf.Config.UploadDir + "/" + dynamicDirName + "/" + strconv.Itoa(now.Year()) + "/" + strconv.Itoa(int(now.Month())) + "/"
+	filePath := conf.Config.UploadDir + strings.Trim(conf.Config.UploadDirName, "/") + "/" + dynamicDirName + "/" + strconv.Itoa(now.Year()) + "/" + strconv.Itoa(int(now.Month())) + "/"
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		err = os.MkdirAll(filePath, os.ModePerm)

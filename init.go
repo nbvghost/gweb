@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -139,7 +138,7 @@ func LoadConfig(gwebFile string) {
 	}
 
 	if strings.EqualFold(conf.Config.UploadDir, "") {
-		conf.Config.UploadDir = "upload"
+		//conf.Config.UploadDir = "upload"
 	}
 	if strings.EqualFold(conf.Config.UploadDirName, "") {
 		conf.Config.UploadDirName = "upload"
@@ -154,7 +153,7 @@ func LoadConfig(gwebFile string) {
 	conf.Config.ViewDir = strings.Trim(conf.Config.ViewDir, "/")
 	conf.Config.ResourcesDir = strings.Trim(conf.Config.ResourcesDir, "/")
 	conf.Config.ResourcesDirName = strings.Trim(conf.Config.ResourcesDirName, "/")
-	conf.Config.UploadDir = strings.Trim(conf.Config.UploadDir, "/")
+	//conf.Config.UploadDir = strings.Trim(conf.Config.UploadDir, "/")
 	conf.Config.UploadDirName = strings.Trim(conf.Config.UploadDirName, "/")
 	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage, "/")
 
@@ -227,19 +226,23 @@ func (static Static) fileNetLoad(writer http.ResponseWriter, request *http.Reque
 	writer.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	writer.Write(b)
 }
-func (static Static) fileLoad(writer http.ResponseWriter, request *http.Request) {
+func (static Static) FileLoad(writer http.ResponseWriter, request *http.Request) {
 	path := request.URL.Query().Get("path")
 
-	urldd, err := url.Parse(path)
+	/*urldd, err := url.Parse(path)
 	if glog.Error(err) {
 		writer.Write([]byte(path))
 		return
-	}
-	if strings.EqualFold(urldd.Scheme, "") && strings.EqualFold(urldd.Host, "") {
+	}*/
+
+	//http.FileServer(http.Dir(path))
+	http.ServeFile(writer, request, conf.Config.UploadDir+path)
+
+	/*if strings.EqualFold(urldd.Scheme, "") && strings.EqualFold(urldd.Host, "") {
 		http.Redirect(writer, request, "/"+path, http.StatusFound)
 	} else {
 		http.Redirect(writer, request, path, http.StatusFound)
-	}
+	}*/
 }
 func (static Static) fileTempLoad(writer http.ResponseWriter, request *http.Request) {
 	path := request.URL.Query().Get("path")
