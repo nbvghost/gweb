@@ -15,7 +15,7 @@ func TestGETMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -36,7 +36,7 @@ func TestOPTMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -57,7 +57,7 @@ func TestHEAMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -78,7 +78,7 @@ func TestPOSMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -99,7 +99,7 @@ func TestPUTMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -120,7 +120,7 @@ func TestDELMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -141,7 +141,7 @@ func TestTRAMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -162,7 +162,7 @@ func TestCONMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -183,7 +183,7 @@ func TestALLMethod(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want function
+		want Function
 	}{
 		// TODO: Add test cases.
 	}
@@ -236,7 +236,7 @@ func TestBaseController_AddSubController(t *testing.T) {
 
 func TestBaseController_AddHandler(t *testing.T) {
 	type args struct {
-		_function function
+		_function Function
 	}
 	tests := []struct {
 		name string

@@ -1,6 +1,7 @@
 package gweb
 
 import (
+	"github.com/nbvghost/gweb/cache"
 	"testing"
 )
 
@@ -215,7 +216,7 @@ func TestCacheFileByte_Read(t *testing.T) {
 		{name: "TestCacheFileByte_Read", args: args{path: "gweb_test.go"}, wantErr: false},
 		{name: "TestCacheFileByte_Read", args: args{path: "interceptor.go"}, wantErr: false},
 	}
-	c := &CacheFileByte{}
+	c := &cache.CacheFileByte{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 

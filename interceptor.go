@@ -1,19 +1,25 @@
 package gweb
 
-import (
-	"errors"
-	"github.com/nbvghost/glog"
+type InterceptorFlow string
+
+const (
+	InterceptorFlowBreak    InterceptorFlow = "BREAK"
+	InterceptorFlowContinue InterceptorFlow = "CONTINUE"
 )
 
 type Interceptors struct {
 	//lock *sync.Mutex
-	list []Interceptor
-}
-type Interceptor interface {
-	Execute(Context *Context) (bool, Result)
+	//list []Interceptor
+	interceptor Interceptor
 }
 
-func (inter *Interceptors) Len() int {
+type Interceptor interface {
+	ActionBefore(context *Context) (bool, Result)
+	ActionBeforeServiceName(context *Context) string
+	ActionAfter(context *Context, result Result) Result
+}
+
+/*func (inter *Interceptors) Len() int {
 	if inter == nil {
 		return 0
 	}
@@ -24,40 +30,70 @@ func (inter *Interceptors) Len() int {
 		return 0
 	}
 	return len(inter.list)
+}*/
+func (inter *Interceptors) Get() Interceptor {
+	return inter.interceptor
 }
-func (inter *Interceptors) Add(value Interceptor) {
-	/*if inter.lock == nil {
-		inter.lock = &sync.Mutex{}
-	}*/
+func (inter *Interceptors) Set(value Interceptor) {
+	inter.interceptor = value
+	/*
+		if inter.list == nil {
+			inter.list = make([]Interceptor, 0)
 
-	if inter.list == nil {
-		inter.list = make([]Interceptor, 0)
-	}
-
-	if inter.Contains(value) == false {
-		inter.list = append(inter.list, value)
-	} else {
-		glog.Error(errors.New("已经存在"))
-	}
-}
-func (inter *Interceptors) ExecuteAll(c *BaseController, context *Context) (bool, Result) {
-	/*if inter.lock == nil {
-		inter.lock = &sync.Mutex{}
-	}
-	inter.lock.Lock()
-	defer inter.lock.Unlock()*/
-	for _, value := range inter.list {
-		//Execute(Session *Session,Request *http.Request) Result
-
-		canNext, result := value.Execute(context)
-		if canNext == false {
-			return canNext, result
 		}
-	}
-	return true, nil
+
+		if inter.Contains(value) == false {
+			inter.list = append(inter.list, value)
+		} else {
+			glog.Error(errors.New("已经存在"))
+		}*/
 }
 
-func (inter *Interceptors) Contains(interceptor Interceptor) bool {
+//func (inter *Interceptors) ExecuteBeforeAll(c *BaseController, context *Context) (bool, Result) {
+//
+//	/*for _, value := range inter.list {
+//		isContinue, interceptorResult := value.ExecuteBefore(context)
+//		if isContinue == false {
+//			return isContinue, interceptorResult
+//		}
+//	}*/
+//	if inter.interceptor == nil {
+//		return true, nil
+//	}
+//	return inter.interceptor.ExecuteBefore(context)
+//}
+
+//func (inter *Interceptors) ExecuteAfterAll(c *BaseController, context *Context, f *Function) Result {
+//
+//	if inter.interceptor == nil {
+//		return nil
+//	}
+//
+//	/*var interceptorFlow InterceptorFlow
+//	var interceptorResult Result
+//	for _, value := range inter.list {
+//		interceptorFlow, interceptorResult = value.ExecuteAfter(context, f)
+//		switch interceptorFlow {
+//		case InterceptorFlowBreak:
+//			if interceptorResult == nil {
+//				return nil
+//			} else {
+//				return interceptorResult
+//			}
+//		case InterceptorFlowContinue:
+//		default:
+//			glog.Trace(fmt.Sprintf("未匹配的拦截器流转类型%v", interceptorFlow))
+//		}
+//
+//	}
+//	if interceptorResult == nil {
+//		return nil
+//	} else {
+//		return interceptorResult
+//	}*/
+//}
+
+/*func (inter *Interceptors) Contains(interceptor Interceptor) bool {
 	have := false
 	for _, value := range inter.list {
 		if interceptor == value {
@@ -68,3 +104,4 @@ func (inter *Interceptors) Contains(interceptor Interceptor) bool {
 	return have
 
 }
+*/

@@ -2,10 +2,11 @@ package gweb
 
 import (
 	"errors"
+	"fmt"
 	"github.com/nbvghost/glog"
+	"github.com/nbvghost/gweb/cache"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/gweb/tool/encryption"
-	"io/ioutil"
 	"net/http"
 	"path/filepath"
 	"reflect"
@@ -40,70 +41,72 @@ func (c *Context) Clone() Context {
 	}
 }
 
-type function struct {
+type ActionFunction func(context *Context) Result
+
+type Function struct {
 	Method    string
 	RoutePath string
-	Function  func(context *Context) Result
+	Function  ActionFunction
 }
 
-func GETMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func GETMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodGet
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func OPTMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func OPTMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodOptions
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func HEAMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func HEAMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodHead
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func POSMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func POSMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodPost
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func PUTMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func PUTMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodPut
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func DELMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func DELMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodDelete
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func TRAMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func TRAMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodTrace
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func CONMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func CONMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = http.MethodConnect
 	_function.RoutePath = RoutePath
 	_function.Function = call
 	return _function
 }
-func ALLMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
+func ALLMethod(RoutePath string, call ActionFunction) Function {
+	var _function Function
 	_function.Method = "ALL"
 	_function.RoutePath = RoutePath
 	_function.Function = call
@@ -121,7 +124,7 @@ func ALLMethod(RoutePath string, call func(context *Context) Result) function {
 type IController interface {
 	Init()
 	ServeHTTP(w http.ResponseWriter, r *http.Request, rootPath string)
-	addRequestMapping(key string, f *function) *ListMapping
+	addRequestMapping(key string, f *Function) *ListMapping
 }
 
 /*type ISubController interface {
@@ -138,7 +141,7 @@ type ListMapping struct {
 }
 type Mapping struct {
 	Key string
-	F   *function
+	F   *Function
 }
 
 func (lm *ListMapping) Range(call func(index int, e *Mapping) bool) {
@@ -213,7 +216,7 @@ func (c *BaseController) Init() {
 
 }
 
-func (c *BaseController) addRequestMapping(key string, f *function) *ListMapping {
+func (c *BaseController) addRequestMapping(key string, f *Function) *ListMapping {
 	//c.Lock()
 	//defer c.Unlock()
 	//c.RequestMapping[key] =f
@@ -332,7 +335,7 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 	/*if c.RequestMapping[key] != nil {
 		glog.Trace(key, "已经存在，将被替换成新的方法")
 	}*/
-	var _function function
+	var _function Function
 	_function.Method = "Get"
 	_function.RoutePath = path
 	_function.Function = func(context *Context) Result {
@@ -379,7 +382,7 @@ func (c *BaseController) AddSubController(path string, isubc IController) {
 }
 
 ///func(context *Context) Result
-func (c *BaseController) AddHandler(_function function) {
+func (c *BaseController) AddHandler(_function Function) {
 	if strings.EqualFold(_function.RoutePath, "") {
 		panic(errors.New("不允许有空的路由"))
 		return
@@ -432,9 +435,9 @@ func (c *BaseController) AddHandler(_function function) {
 //	_pattern := c.Root +"/"+ pattern
 //	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
 //}
-func (c *BaseController) pathParams(Method, Path string) (*function, map[string]string) {
+func (c *BaseController) pathParams(Method, Path string) (*Function, map[string]string) {
 
-	var f *function
+	var f *Function
 	var p map[string]string
 
 	if c.RequestMapping.GetByKey("ALL,"+Path) != nil {
@@ -478,29 +481,7 @@ func (c *BaseController) pathParams(Method, Path string) (*function, map[string]
 
 	return f, p
 }
-func (c *BaseController) doAction(context *Context, f *function) Result {
-	//path := strings.TrimRight(context.Request.URL.Path, "/")
-	//path := context.Request.URL.Path
-	//rowUrl := context.Request.URL.String()
-	glog.Debug(context.Request.Method, context.Request.URL)
 
-	//var f *function
-	var result Result
-
-	//Method := context.Request.Method
-	//f,context.PathParams = c.pathParams(Method,path)
-
-	if f == nil {
-		result = &ViewActionMappingResult{}
-	} else {
-		result = f.Function(context)
-		if result == nil {
-			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
-		}
-	}
-
-	return result
-}
 func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	glog.Debug(r.Method, r.URL)
 
@@ -589,42 +570,64 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootP
 
 	Method := context.Request.Method
 
-	var f *function
+	var f *Function
 	f, context.PathParams = c.pathParams(Method, context.Request.URL.Path)
 
-	if c.Interceptors.Len() > 0 {
-		bo, executeResult := c.Interceptors.ExecuteAll(c, context)
-		if bo == false {
-			if executeResult != nil {
-				executeResult.Apply(context)
+	if c.Interceptors.Get() == nil {
+		c.doAction(context, f).Apply(context)
+
+	} else {
+		isContinue, beforeResult := c.Interceptors.Get().ActionBefore(context)
+		if isContinue == false {
+			if beforeResult != nil {
+				beforeResult.Apply(context)
 			}
 			return
 		}
-	}
 
-	//f 如果为空，表明没有对应的action，则直接动态渲染
-	if f != nil && conf.Config.Debug == false {
+		serviceName := c.Interceptors.Get().ActionBeforeServiceName(context)
 
-		var fullPath = context.Request.URL.Path
-		if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
-			fullPath = fullPath + "?" + context.Request.URL.RawQuery
-		}
+		if strings.EqualFold(serviceName, "") == false {
+			var fullPath = context.Request.URL.Path
+			if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
+				fullPath = fullPath + "?" + context.Request.URL.RawQuery
+			}
 
-		fullPathMd5 := encryption.Md5ByString(fullPath)
-
-		if tool.IsFileExist("cache/" + fullPathMd5) {
-			b, err := ioutil.ReadFile("cache/" + fullPathMd5)
-			if glog.Error(err) == false {
+			fullPathMd5 := encryption.Md5ByString(fullPath)
+			cacheItem, err := cache.Read(fmt.Sprintf("cache/%v/%v", serviceName, fullPathMd5))
+			if err == nil {
 				context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-				context.Response.Write(b)
+				context.Response.Write(cacheItem.Byte)
 				return
+
 			}
 		}
 
+		result := c.doAction(context, f)
+
+		interceptorResult := c.Interceptors.Get().ActionAfter(context, result)
+		if interceptorResult == nil {
+			interceptorResult = result
+		}
+
+		interceptorResult.Apply(context)
 	}
 
-	result := c.doAction(context, f)
-	result.Apply(context)
+}
+
+func (c *BaseController) doAction(context *Context, f *Function) Result {
+	glog.Debug(context.Request.Method, context.Request.URL)
+	var result Result
+	if f == nil {
+		result = &ViewActionMappingResult{}
+	} else {
+		result = f.Function(context)
+		if result == nil {
+			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
+		}
+	}
+
+	return result
 }
 
 func delRepeatAll(src string, new string) string {
