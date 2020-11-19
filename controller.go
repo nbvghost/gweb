@@ -585,22 +585,23 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootP
 			return
 		}
 
-		serviceName := c.Interceptors.Get().ActionBeforeServiceName(context)
+		serviceConfig := c.Interceptors.Get().ActionService(context)
 
-		if strings.EqualFold(serviceName, "") == false {
+		if serviceConfig.CacheConfig.EnableHTMLCache {
+
 			var fullPath = context.Request.URL.Path
 			if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
 				fullPath = fullPath + "?" + context.Request.URL.RawQuery
 			}
-
 			fullPathMd5 := encryption.Md5ByString(fullPath)
-			cacheItem, err := cache.Read(fmt.Sprintf("cache/%v/%v", serviceName, fullPathMd5))
+			cacheItem, err := cache.Read(fmt.Sprintf("cache/%v/%v", serviceConfig.CacheConfig.PrefixName, fullPathMd5))
 			if err == nil {
 				context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 				context.Response.Write(cacheItem.Byte)
 				return
 
 			}
+
 		}
 
 		result := c.doAction(context, f)
@@ -608,6 +609,18 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootP
 		interceptorResult := c.Interceptors.Get().ActionAfter(context, result)
 		if interceptorResult == nil {
 			interceptorResult = result
+		}
+
+		if serviceConfig.CacheConfig.EnableHTMLCache {
+
+			if htmlResult, ok := interceptorResult.(*HTMLResult); ok {
+
+				interceptorResult = &cacheHTMLResult{
+					HTMLResult:  htmlResult,
+					ServiceName: serviceConfig.CacheConfig.PrefixName,
+				}
+			}
+
 		}
 
 		interceptorResult.Apply(context)

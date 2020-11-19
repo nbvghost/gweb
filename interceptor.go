@@ -13,9 +13,17 @@ type Interceptors struct {
 	interceptor Interceptor
 }
 
+type CacheConfig struct {
+	PrefixName      string //前缀名字，主要用于生成缓存目录的名字
+	EnableHTMLCache bool   //是否启用html缓存功能
+}
+type ServiceConfig struct {
+	CacheConfig CacheConfig
+}
+
 type Interceptor interface {
 	ActionBefore(context *Context) (bool, Result)
-	ActionBeforeServiceName(context *Context) string
+	ActionService(context *Context) ServiceConfig
 	ActionAfter(context *Context, result Result) Result
 }
 

@@ -34,7 +34,7 @@ var _ Result = (*SingleHostForwardProxyResult)(nil)
 var _ Result = (*ViewActionMappingResult)(nil)
 var _ Result = (*ViewResult)(nil)
 var _ Result = (*EmptyResult)(nil)
-var _ Result = (*CacheHTMLResult)(nil)
+var _ Result = (*cacheHTMLResult)(nil)
 var _ Result = (*HTMLResult)(nil)
 var _ Result = (*JsonResult)(nil)
 var _ Result = (*FileServerResult)(nil)
@@ -468,12 +468,12 @@ func (r *EmptyResult) Apply(context *Context) {
 }
 
 //只映射已经定义的后缀模板文件，并生成html缓存文件
-type CacheHTMLResult struct {
+type cacheHTMLResult struct {
 	*HTMLResult
 	ServiceName string
 }
 
-func (r *CacheHTMLResult) Apply(context *Context) {
+func (r *cacheHTMLResult) Apply(context *Context) {
 	if r.ServiceName == "" {
 		NewErrorResult(errors.New("CacheHTMLResult 结果，必须指定ServiceName值")).Apply(context)
 		return
