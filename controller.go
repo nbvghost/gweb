@@ -502,7 +502,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			for k, _ := range lastItem {
 
-				re, err := regexp.Compile("\\{(.*?)+\\}")
+				re, err := regexp.Compile(`\{(.*?)+\}`)
 				glog.Error(err)
 				if re.MatchString(k) {
 
@@ -517,12 +517,28 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	controller, ok := lastItem[""].(IController)
 	if ok == false {
-		controller, ok = lastItem[""].(map[string]interface{})[""].(IController)
-		if ok == false {
+		if lastItem[""] == nil {
 			controller = &BaseController{}
+
+		} else {
+			subItem := lastItem[""].(map[string]interface{})
+			if subItem == nil {
+				controller = &BaseController{}
+			} else {
+				subsubItem := lastItem[""].(map[string]interface{})[""]
+				controller, ok = subsubItem.(IController)
+				if ok == false {
+					controller = &BaseController{}
+				}
+			}
 		}
+
 	}
-	controller.ServeHTTP(w, r, "/"+strings.Join(RootPathList, "/")+"/")
+	if len(RootPathList) == 0 {
+		controller.ServeHTTP(w, r, "/")
+	} else {
+		controller.ServeHTTP(w, r, "/"+strings.Join(RootPathList, "/")+"/")
+	}
 
 }
 func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootPath string) {
