@@ -27,7 +27,7 @@ func StartServer(serverMux *http.ServeMux, httpServer *http.Server, httpsServer 
 	//serverMux.Handle("/"+conf.Config.UploadDirName+"/", http.StripPrefix("/"+conf.Config.UploadDirName+"/", http.FileServer(http.Dir(conf.Config.UploadDir))))
 	serverMux.Handle("/temp/", http.StripPrefix("/temp/", http.FileServer(http.Dir("temp"))))
 
-	serverMux.HandleFunc("/", ServeHTTP)
+	//serverMux.HandleFunc("/", ServeHTTP)
 
 	if httpServer == nil && httpsServer == nil {
 		panic("选择http或https")

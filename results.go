@@ -648,9 +648,10 @@ type FileServerResult struct {
 }
 
 func (fs *FileServerResult) Apply(context *Context) {
-
-	http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response, context.Request)
-
+	prefixdir := strings.Split(strings.Trim(context.Request.URL.Path, "/"), "/")[0]
+	//http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(conf.Config.ResourcesDir, http.FileServer(http.Dir(fs.Dir))).ServeHTTP(context.Response, context.Request)
+	http.StripPrefix("/"+prefixdir+"/", http.FileServer(http.Dir(conf.Config.ResourcesDir))).ServeHTTP(context.Response, context.Request)
 }
 
 type HtmlPlainResult struct {
