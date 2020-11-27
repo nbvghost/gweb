@@ -103,7 +103,8 @@ func WriteWithFile(file multipart.File, header *multipart.FileHeader, dynamicDir
 	}
 
 	now := time.Now()
-	filePath := conf.Config.UploadDir + strings.Trim(conf.Config.UploadDirName, "/") + "/" + dynamicDirName + "/" + strconv.Itoa(now.Year()) + "/" + strconv.Itoa(int(now.Month())) + "/"
+	netPath := dynamicDirName + "/" + strconv.Itoa(now.Year()) + "/" + strconv.Itoa(int(now.Month())) + "/"
+	filePath := conf.Config.UploadDir + strings.Trim(conf.Config.UploadDirName, "/") + "/" + netPath
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		err = os.MkdirAll(filePath, os.ModePerm)
@@ -119,15 +120,15 @@ func WriteWithFile(file multipart.File, header *multipart.FileHeader, dynamicDir
 		return err, ""
 	}
 
-	fileName := filePath + header.Filename
-	if fileInfo, err := os.Stat(fileName); err == nil {
+	fileName := header.Filename
+	if fileInfo, err := os.Stat(filePath + fileName); err == nil {
 		if fileInfo.IsDir() {
 
 			return errors.New("目标是一个文件夹"), ""
 
 		}
 
-		f, err := os.OpenFile(fileName, os.O_RDONLY, os.ModePerm) //打开文件
+		f, err := os.OpenFile(filePath+fileName, os.O_RDONLY, os.ModePerm) //打开文件
 		if glog.Error(err) {
 
 			return err, ""
@@ -140,16 +141,16 @@ func WriteWithFile(file multipart.File, header *multipart.FileHeader, dynamicDir
 		}
 
 		if strings.EqualFold(encryption.Md5ByBytes(fileBytes), encryption.Md5ByBytes(fBytes)) {
-			return nil, fileName
+			return nil, netPath + fileName
 		}
 
 		names := strings.Split(header.Filename, ".")
 		if len(names) == 0 {
-			fileName = filePath + header.Filename + "_copy"
+			fileName = header.Filename + "_copy"
 		} else if len(names) == 1 {
-			fileName = filePath + names[0] + "_copy"
+			fileName = names[0] + "_copy"
 		} else {
-			fileName = filePath
+			fileName = ""
 			for i := 0; i < len(names)-1; i++ {
 
 				if i == 0 {
@@ -161,17 +162,20 @@ func WriteWithFile(file multipart.File, header *multipart.FileHeader, dynamicDir
 			fileName = fileName + "." + names[len(names)-1]
 		}
 
+	} else {
+		fileName = header.Filename
 	}
 
-	f, err := os.OpenFile(fileName, os.O_RDWR|os.O_CREATE, os.ModePerm) //打开文件
+	f, err := os.OpenFile(filePath+fileName, os.O_RDWR|os.O_CREATE, os.ModePerm) //打开文件
 	if glog.Error(err) {
 		return err, ""
 	} else {
-		f.Write(fileBytes)
-		f.Sync()
-		f.Close()
+		_, err = f.Write(fileBytes)
+		glog.Error(err)
+		glog.Error(f.Sync())
+		glog.Error(f.Close())
 	}
-	return nil, fileName
+	return nil, netPath + fileName
 
 }
 func WriteFilePath(read []byte, subPath string, fileName string) (error, string) {

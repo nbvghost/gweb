@@ -3,11 +3,11 @@ package gweb
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
-	"github.com/nbvghost/gweb/tool"
 	"github.com/nbvghost/gweb/tool/number"
 	"html/template"
 	"log"
@@ -210,7 +210,7 @@ func (fo *FuncObject) dateTimeFormat(source time.Time, format string) string {
 	return source.Format(format)
 }
 func (fo *FuncObject) toJSON(source interface{}) string {
-	b, err := tool.JsonMarshal(source)
+	b, err := json.Marshal(source)
 	glog.Error(err)
 	return string(b)
 }
@@ -234,13 +234,13 @@ func cipherEncrypter(source string) string {
 }*/
 func (fo *FuncObject) fromJSONToMap(source string) map[string]interface{} {
 	d := make(map[string]interface{})
-	err := tool.JsonUnmarshal([]byte(source), &d)
+	err := json.Unmarshal([]byte(source), &d)
 	glog.Error(err)
 	return d
 }
 func (fo *FuncObject) fromJSONToArray(source string) []interface{} {
 	d := make([]interface{}, 0)
-	err := tool.JsonUnmarshal([]byte(source), &d)
+	err := json.Unmarshal([]byte(source), &d)
 	glog.Error(err)
 	return d
 }

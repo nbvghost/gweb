@@ -1,6 +1,7 @@
 package gweb
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
@@ -8,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -126,7 +128,7 @@ func LoadConfig(gwebFile string) {
 		conf.Config.DBUrl = ""
 
 	} else {
-		err = tool.JsonUnmarshal(content, &conf.Config)
+		err = json.Unmarshal(content, &conf.Config)
 		glog.Error(err)
 	}
 
@@ -157,7 +159,7 @@ func LoadConfig(gwebFile string) {
 	conf.Config.UploadDirName = strings.Trim(conf.Config.UploadDirName, "/")
 	conf.Config.DefaultPage = strings.Trim(conf.Config.DefaultPage, "/")
 
-	dt, _ := tool.JsonMarshal(conf.Config)
+	dt, _ := json.Marshal(conf.Config)
 	//tool.Trace("当前配制信息：" + string(dt))
 	glog.Debug(fmt.Sprintf("当前配制信息：\n%v\n", string(dt)))
 
@@ -172,7 +174,7 @@ func FileUploadAction(context *Context, dynamicDirName string) {
 		result["Message"] = err
 		result["Path"] = ""
 		result["Url"] = ""
-		rb, _ := tool.JsonMarshal(result)
+		rb, _ := json.Marshal(result)
 		context.Response.Write(rb)
 		return
 	}
@@ -185,7 +187,7 @@ func FileUploadAction(context *Context, dynamicDirName string) {
 		result["Message"] = err
 		result["Path"] = ""
 		result["Url"] = ""
-		rb, _ := tool.JsonMarshal(result)
+		rb, _ := json.Marshal(result)
 		context.Response.Write(rb)
 	} else {
 		result := make(map[string]interface{})
@@ -193,7 +195,7 @@ func FileUploadAction(context *Context, dynamicDirName string) {
 		result["Message"] = "OK"
 		result["Path"] = fileName
 		result["Url"] = "//" + conf.Config.Domain + "/file/load?path=" + fileName
-		rb, _ := tool.JsonMarshal(result)
+		rb, _ := json.Marshal(result)
 		context.Response.Write(rb)
 	}
 
@@ -226,17 +228,26 @@ func (static Static) fileNetLoad(writer http.ResponseWriter, request *http.Reque
 	writer.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 	writer.Write(b)
 }
-func (static Static) FileLoad(writer http.ResponseWriter, request *http.Request) {
-	path := request.URL.Query().Get("path")
+func (static Static) FileLoad(ctx *Context) Result {
+	path := ctx.Request.URL.Query().Get("path")
 
-	/*urldd, err := url.Parse(path)
-	if glog.Error(err) {
-		writer.Write([]byte(path))
-		return
-	}*/
+	//http://192.168.1.100:9000/file/load?path=upload/1/2020/11/th%20(1).jpeg
+
+	urldd, err := url.Parse(path)
+	if glog.Error(err) || (strings.EqualFold(urldd.Scheme, "") && strings.EqualFold(urldd.Host, "")) {
+		//dir, _ := filepath.Split(path)
+		http.ServeFile(ctx.Response, ctx.Request, conf.Config.UploadDir+conf.Config.UploadDirName+"/"+path)
+		return &EmptyResult{}
+		/*return &FileServerResult{
+			Dir:         conf.Config.UploadDir + "/" + conf.Config.UploadDirName + "/",
+			StripPrefix: dir,
+		}*/
+	}
+
+	return &RedirectToUrlResult{Url: path}
 
 	//http.FileServer(http.Dir(path))
-	http.ServeFile(writer, request, conf.Config.UploadDir+path)
+	//http.ServeFile(writer, request, conf.Config.UploadDir+path)
 
 	/*if strings.EqualFold(urldd.Scheme, "") && strings.EqualFold(urldd.Host, "") {
 		http.Redirect(writer, request, "/"+path, http.StatusFound)

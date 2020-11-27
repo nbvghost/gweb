@@ -19,7 +19,7 @@ func StartServer(serverMux *http.ServeMux, httpServer *http.Server, httpsServer 
 
 	static := Static{}
 	//serverMux.HandleFunc("/file/up", static.fileUp)
-	serverMux.HandleFunc("/file/load", static.FileLoad)
+	//serverMux.HandleFunc("/file/load", static.FileLoad)
 	serverMux.HandleFunc("/file/net/load", static.fileNetLoad)
 	serverMux.HandleFunc("/file/temp/load", static.fileTempLoad)
 

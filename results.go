@@ -1,6 +1,7 @@
 package gweb
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/nbvghost/gweb/cache"
@@ -528,7 +529,6 @@ type HTMLResult struct {
 }
 
 func (r *HTMLResult) Apply(context *Context) {
-
 	path, filename := filepath.Split(context.Request.URL.Path)
 
 	var b *cache.CacheFileItem
@@ -540,7 +540,7 @@ func (r *HTMLResult) Apply(context *Context) {
 		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + filename + conf.Config.ViewSuffix))
 	} else {
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + context.RootPath + "/" + r.Name + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + context.RoutePath + "/" + r.Name + conf.Config.ViewSuffix))
 	}
 	if err != nil {
 		//判断是否有默认页面
@@ -597,10 +597,10 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 	data["debug"] = conf.Config.Debug
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
-	data["rootPath"] = context.RootPath
+	data["rootPath"] = context.RoutePath
 
 	jsonData := make(map[string]interface{})
-	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
+	json.Unmarshal([]byte(conf.JsonText), &jsonData)
 
 	data["data"] = jsonData
 
@@ -628,7 +628,7 @@ func (r *JsonResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	b, err = tool.JsonMarshal(r.Data)
+	b, err = json.Marshal(r.Data)
 	if err != nil {
 		(&ErrorResult{Error: err}).Apply(context)
 		return
@@ -644,14 +644,25 @@ func (r *JsonResult) Apply(context *Context) {
 }
 
 type FileServerResult struct {
-	Dir http.Dir
+	Dir         string
+	StripPrefix string
 }
 
+// http.StripPrefix
 func (fs *FileServerResult) Apply(context *Context) {
-	prefixdir := strings.Split(strings.Trim(context.Request.URL.Path, "/"), "/")[0]
+	//dir, _ := filepath.Split(context.Request.URL.Path)
+	//log.Println(dir, fileName)
 	//http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response, context.Request)
 	//http.StripPrefix(conf.Config.ResourcesDir, http.FileServer(http.Dir(fs.Dir))).ServeHTTP(context.Response, context.Request)
-	http.StripPrefix("/"+prefixdir+"/", http.FileServer(http.Dir(conf.Config.ResourcesDir))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(dir))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(context.Request.URL.Path))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(dir, http.FileServer(http.Dir("resources"))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(dir, http.FileServer(fs.Dir+"/"+http.Dir(dir))).ServeHTTP(context.Response, context.Request)
+
+	//http.StripPrefix("/resources/", http.FileServer(http.Dir(conf.Config.ResourcesDir+"/resources"))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix("/web/", http.FileServer(http.Dir(conf.Config.ViewDir+"/web/"))).ServeHTTP(context.Response, context.Request)
+	http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(fs.Dir+fs.StripPrefix))).ServeHTTP(context.Response, context.Request)
+
 }
 
 type HtmlPlainResult struct {
