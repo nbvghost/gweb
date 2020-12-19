@@ -255,12 +255,8 @@ func (static Static) FileLoad(ctx *Context) Result {
 		http.Redirect(writer, request, path, http.StatusFound)
 	}*/
 }
-func (static Static) fileTempLoad(writer http.ResponseWriter, request *http.Request) {
-	path := request.URL.Query().Get("path")
-	//fmt.Println(util.GetHost(context))
-	//return &gweb.ImageResult{FilePath: path}
-	//return &gweb.RedirectToUrlResult{Url:"/file/"}
-	//tempFiles[path]=time.Now().Unix()
-	http.Redirect(writer, request, "/temp/"+path, http.StatusFound)
-
+func (static Static) FileTempLoad(ctx *Context) Result {
+	path := ctx.Request.URL.Query().Get("path")
+	http.ServeFile(ctx.Response, ctx.Request, "temp/"+path)
+	return &EmptyResult{}
 }

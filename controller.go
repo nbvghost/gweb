@@ -122,7 +122,8 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		interceptor := function.controller.Interceptors.Get()
 
-		controller := function.controller.ParentController
+		//todo:不主动获取拦截器，必须指定
+		/*controller := function.controller.ParentController
 		for controller != nil {
 			//interceptor=controller.Interceptors.Get(); interceptor != nil
 			if interceptor == nil {
@@ -131,7 +132,7 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-		}
+		}*/
 		if interceptor == nil {
 			function.controller.doAction(context, function).Apply(context)
 		} else {

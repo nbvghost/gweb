@@ -21,7 +21,7 @@ func StartServer(serverMux *http.ServeMux, httpServer *http.Server, httpsServer 
 	//serverMux.HandleFunc("/file/up", static.fileUp)
 	//serverMux.HandleFunc("/file/load", static.FileLoad)
 	serverMux.HandleFunc("/file/net/load", static.fileNetLoad)
-	serverMux.HandleFunc("/file/temp/load", static.fileTempLoad)
+	//serverMux.HandleFunc("/file/temp/load", static.FileTempLoad)
 
 	serverMux.Handle("/"+conf.Config.ResourcesDirName+"/", http.StripPrefix("/"+conf.Config.ResourcesDirName+"/", http.FileServer(http.Dir(conf.Config.ResourcesDir))))
 	//serverMux.Handle("/"+conf.Config.UploadDirName+"/", http.StripPrefix("/"+conf.Config.UploadDirName+"/", http.FileServer(http.Dir(conf.Config.UploadDir))))
