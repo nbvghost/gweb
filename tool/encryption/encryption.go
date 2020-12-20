@@ -17,6 +17,10 @@ import (
 
 type SecretKey string
 
+func NewSecretKey(key string) SecretKey {
+	return SecretKey(Md5ByString(key))
+}
+
 //加密
 func CipherEncrypter(tkey SecretKey, tvalue string) string {
 	key := []byte(tkey)

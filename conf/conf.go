@@ -28,4 +28,5 @@ var Config = &struct {
 	Name              string              `json:"Name"`              //
 	Ver               string              `json:"Ver"`               //
 	SessionExpires    int64               `json:"SessionExpires"`    //
+	SecureKey         string              `json:"SecureKey"`         //
 }{}

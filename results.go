@@ -534,19 +534,24 @@ func (r *HTMLResult) Apply(context *Context) {
 	var b *cache.CacheFileItem
 	var err error
 
+	viewSubDir := context.Function.controller.ViewSubDir
+	if strings.EqualFold(viewSubDir, "") == false {
+		viewSubDir = viewSubDir + "/"
+	}
+
 	if strings.EqualFold(r.Name, "") {
 		//html 只处理，已经定义后缀名的文件
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + filename + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + path + "/" + filename + conf.Config.ViewSuffix))
 	} else {
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + context.RoutePath + "/" + r.Name + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + context.RoutePath + "/" + r.Name + conf.Config.ViewSuffix))
 	}
 	if err != nil {
 		//判断是否有默认页面
 		//fmt.Println(fixPath(Config.ViewDir + "/" + path +"/"+ Config.DefaultPage))
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
 		if err != nil {
 			(&ViewActionMappingResult{}).Apply(context)
 			return
@@ -562,9 +567,9 @@ func (r *HTMLResult) Apply(context *Context) {
 		var err error
 		var tt *template.Template
 		if strings.Contains(tpath, "*") {
-			tt, err = t.ParseGlob(conf.Config.ViewDir + "/" + tpath)
+			tt, err = t.ParseGlob(conf.Config.ViewDir + "/" + viewSubDir + tpath)
 		} else {
-			tt, err = t.ParseFiles(conf.Config.ViewDir + "/" + tpath)
+			tt, err = t.ParseFiles(conf.Config.ViewDir + "/" + viewSubDir + tpath)
 		}
 
 		if err != nil {
@@ -644,8 +649,8 @@ func (r *JsonResult) Apply(context *Context) {
 }
 
 type FileServerResult struct {
-	Dir         string
-	StripPrefix string
+	Prefix string
+	Dir    string
 }
 
 // http.StripPrefix
@@ -661,7 +666,10 @@ func (fs *FileServerResult) Apply(context *Context) {
 
 	//http.StripPrefix("/resources/", http.FileServer(http.Dir(conf.Config.ResourcesDir+"/resources"))).ServeHTTP(context.Response, context.Request)
 	//http.StripPrefix("/web/", http.FileServer(http.Dir(conf.Config.ViewDir+"/web/"))).ServeHTTP(context.Response, context.Request)
-	http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(fs.Dir+fs.StripPrefix))).ServeHTTP(context.Response, context.Request)
+
+	//http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(fs.Dir+fs.StripPrefix))).ServeHTTP(context.Response, context.Request)
+
+	http.StripPrefix(fs.Prefix, http.FileServer(http.Dir(fs.Dir))).ServeHTTP(context.Response, context.Request)
 
 }
 

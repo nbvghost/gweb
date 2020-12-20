@@ -25,6 +25,7 @@ type Context struct {
 	PathParams map[string]string
 	RoutePath  string //route 的路径，相当于router根目录,请求request path remove restful path
 	Data       map[string]interface{}
+	Function   *Function
 }
 
 func (c *Context) Clone() Context {
@@ -103,7 +104,7 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jsonData := make(map[string]interface{})
 	json.Unmarshal([]byte(conf.JsonText), &jsonData)
 
-	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData, PathParams: mux.Vars(r)}
+	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData, PathParams: mux.Vars(r), Function: function}
 
 	//context.RootPath=
 
@@ -188,6 +189,7 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		(&Controller{}).doAction(context, function).Apply(context)
+		panic(errors.New("Function 无法获取 Controller"))
 	}
 
 }
@@ -216,7 +218,6 @@ func NewFunction(RoutePath string, call ActionFunction, args ...HttpMethod) *Fun
 
 type IController interface {
 	Init()
-	Name() string
 	DefaultHandle(context *Context) Result
 }
 
@@ -229,15 +230,21 @@ type Controller struct {
 	Interceptors     Interceptors
 	ParentController *Controller
 	Router           *mux.Router //dir
-	//Route            *mux.Route  // one
+	ViewSubDir       string
 }
 
 func (c *Controller) DefaultHandle(context *Context) Result {
 	panic("implement me")
 }
 
-func NewStaticController(controller IController) IController {
-	path := "/" + strings.Trim(controller.Name(), "/") + "/"
+func NewStaticController(controller IController, actionName string) IController {
+
+	path := "/" + strings.Trim(actionName, "/") + "/"
+	if strings.EqualFold(actionName, "/") || strings.EqualFold(actionName, "") {
+		path = "/"
+	} else {
+		path = "/" + strings.Trim(actionName, "/") + "/"
+	}
 	route := AppRouter.PathPrefix(path)
 	route.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
@@ -265,41 +272,55 @@ func NewStaticController(controller IController) IController {
 
 	return controller
 }
-func NewController(controller IController) IController {
-	path := "/" + strings.Trim(controller.Name(), "/")
 
-	AppRouter.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
-		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+// /
+// actionName
+func NewController(controller IController, actionName, viewSubDir string) IController {
+	path := "/" + strings.Trim(actionName, "/")
 
-		function := &Function{
-			Methods:    []HttpMethod{MethodGet},
-			RoutePath:  "*",
-			Function:   controller.DefaultHandle,
-			controller: c.Addr().Interface().(*Controller),
-		}
+	routePath := ""
 
-		function.ServeHTTP(writer, request)
-	})
+	if strings.EqualFold(path, "/") == false {
+		AppRouter.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+			c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
-	route := AppRouter.PathPrefix(path + "/")
+			function := &Function{
+				Methods:    []HttpMethod{MethodGet},
+				RoutePath:  "*",
+				Function:   controller.DefaultHandle,
+				controller: c.Addr().Interface().(*Controller),
+			}
+
+			function.ServeHTTP(writer, request)
+		})
+		routePath = path + "/"
+	} else {
+		routePath = "/"
+	}
+
+	route := AppRouter.PathPrefix(routePath)
 	router := route.Subrouter()
 
 	v := reflect.ValueOf(controller)
 	RoutePathValue := v.Elem().FieldByName("RoutePath")
-	RoutePathValue.SetString(path + "/")
+	RoutePathValue.SetString(routePath)
 
 	RouterValue := v.Elem().FieldByName("Router")
 	RouterValue.Set(reflect.ValueOf(router))
+
+	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
+	ViewSubDirValue.Set(reflect.ValueOf(strings.Trim(viewSubDir, "/")))
+
 	controller.Init()
 	return controller
 
 }
 
-func (c *Controller) NewController(controller IController) IController {
+func (c *Controller) NewController(controller IController, actionName string) IController {
 
-	path := "/" + strings.Trim(controller.Name(), "/") + "/"
+	path := "/" + strings.Trim(actionName, "/") + "/"
 
-	c.Router.HandleFunc("/"+strings.Trim(controller.Name(), "/"), func(writer http.ResponseWriter, request *http.Request) {
+	c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
 		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 		function := &Function{
@@ -318,13 +339,16 @@ func (c *Controller) NewController(controller IController) IController {
 	v := reflect.ValueOf(controller)
 
 	RoutePathValue := v.Elem().FieldByName("RoutePath")
-	RoutePathValue.SetString(c.RoutePath + path)
+	RoutePathValue.SetString(c.RoutePath + strings.Trim(path, "/") + "/")
 
 	RouteValue := v.Elem().FieldByName("Router")
 	RouteValue.Set(reflect.ValueOf(router))
 
 	ParentControllerValue := v.Elem().FieldByName("ParentController")
 	ParentControllerValue.Set(reflect.ValueOf(c))
+
+	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
+	ViewSubDirValue.Set(reflect.ValueOf(c.ViewSubDir))
 
 	controller.Init()
 
