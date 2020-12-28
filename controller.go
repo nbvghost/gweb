@@ -80,7 +80,7 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil || strings.EqualFold(cookie.Value, "") {
 
 		GLSESSIONID = tool.UUID()
-		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: int(30 * time.Minute)})
+		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: conf.Config.SessionExpires})
 		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
 		Sessions.AddSession(GLSESSIONID, session)
 

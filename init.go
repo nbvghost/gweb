@@ -53,7 +53,7 @@ func initGo() {
 			for {
 				Sessions.Range(func(key, value interface{}) bool {
 					session := value.(*Session)
-					if time.Now().Unix()-session.LastOperationTime >= conf.Config.SessionExpires {
+					if time.Now().Unix()-session.LastOperationTime >= int64(conf.Config.SessionExpires) {
 						Sessions.DeleteSession(key.(string))
 					}
 					return true
@@ -152,6 +152,10 @@ func LoadConfig(gwebFile string) {
 		conf.Config.Ver = "0.0.0"
 	}
 
+	if conf.Config.SessionExpires <= 0 {
+		conf.Config.SessionExpires = 1800
+	}
+
 	conf.Config.ViewDir = strings.Trim(conf.Config.ViewDir, "/")
 	conf.Config.ResourcesDir = strings.Trim(conf.Config.ResourcesDir, "/")
 	conf.Config.ResourcesDirName = strings.Trim(conf.Config.ResourcesDirName, "/")
@@ -186,7 +190,7 @@ func FileUploadAction(context *Context, dynamicDirName string) {
 		result["Success"] = false
 		result["Message"] = err
 		result["Path"] = ""
-		result["Url"] = ""
+		//result["Url"] = ""
 		rb, _ := json.Marshal(result)
 		context.Response.Write(rb)
 	} else {
@@ -194,7 +198,7 @@ func FileUploadAction(context *Context, dynamicDirName string) {
 		result["Success"] = true
 		result["Message"] = "OK"
 		result["Path"] = fileName
-		result["Url"] = "//" + conf.Config.Domain + "/file/load?path=" + fileName
+		//result["Url"] = "//" + conf.Config.Domain + "/file/load?path=" + fileName
 		rb, _ := json.Marshal(result)
 		context.Response.Write(rb)
 	}

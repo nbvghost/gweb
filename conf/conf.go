@@ -27,6 +27,6 @@ var Config = &struct {
 	LogServer         string              `json:"LogServer"`         //
 	Name              string              `json:"Name"`              //
 	Ver               string              `json:"Ver"`               //
-	SessionExpires    int64               `json:"SessionExpires"`    //
+	SessionExpires    int                 `json:"SessionExpires"`    //
 	SecureKey         string              `json:"SecureKey"`         //
 }{}
