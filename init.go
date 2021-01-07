@@ -240,7 +240,7 @@ func (static Static) FileLoad(ctx *Context) Result {
 	urldd, err := url.Parse(path)
 	if glog.Error(err) || (strings.EqualFold(urldd.Scheme, "") && strings.EqualFold(urldd.Host, "")) {
 		//dir, _ := filepath.Split(path)
-		http.ServeFile(ctx.Response, ctx.Request, conf.Config.UploadDir+conf.Config.UploadDirName+"/"+path)
+		http.ServeFile(ctx.Response, ctx.Request, strings.Trim(conf.Config.UploadDir, "/")+"/"+strings.Trim(conf.Config.UploadDirName, "/")+"/"+path)
 		return &EmptyResult{}
 		/*return &FileServerResult{
 			Dir:         conf.Config.UploadDir + "/" + conf.Config.UploadDirName + "/",
