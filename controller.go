@@ -372,7 +372,14 @@ func (c *Controller) AddHandler(function *Function) {
 	if len(methods) == 0 {
 		methods = append(methods, string(MethodGet))
 	}
-	c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function).Methods(methods...)
+
+	//todo:要测试
+	if function.RoutePath == "/" {
+		c.Router.PathPrefix("/").Handler(function).Methods(methods...)
+	} else {
+		c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function).Methods(methods...)
+	}
+
 }
 
 func (c *Controller) AddStaticHandler(function *Function) {
