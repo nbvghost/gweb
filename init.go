@@ -1,6 +1,7 @@
 package gweb
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"github.com/nbvghost/glog"
@@ -25,8 +26,8 @@ func initGo() {
 			return err //glog.Trace("当前未使用data.json 文件")
 		} else {
 			//fmt.Printf("当前data.json数据：\n%v\n", string(mJsonData))
-			conf.JsonText = string(mJsonData)
-			return nil
+			//conf.JsonText = string(mJsonData)
+			return conf.JsonData.New(mJsonData)
 			//err = json.Unmarshal(mJsonData, &conf.JsonData)
 			//glog.Error(err)
 			//return err
@@ -34,9 +35,7 @@ func initGo() {
 	}
 	err := readDataFile()
 	if err != nil {
-		if strings.EqualFold(conf.JsonText, "") {
-			glog.Trace("当前未使用data.json 文件")
-		}
+		glog.Trace("当前未使用data.json 文件")
 	}
 
 	go func() {
@@ -96,10 +95,13 @@ func initGo() {
 	}()
 }
 func init() {
+	gob.Register([]interface{}{})
+	gob.Register(map[string]interface{}{})
 	//testing.Init()
 	//flag.StringVar(&gwebJson, "gweb", "gweb.json", "-gweb 指定gweb.json的位置")
 	LoadConfig(gweb)
 	initGo()
+
 }
 
 //todo:暂时使用 LoadConfig 参数来指定 gweb.json 文件,后面改用 os.Args

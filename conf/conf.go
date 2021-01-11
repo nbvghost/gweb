@@ -1,11 +1,57 @@
 package conf
 
+import (
+	"bytes"
+	"encoding/gob"
+	"encoding/json"
+	"sync"
+)
+
 type ViewActionMapping struct {
 	ContentType string `json:"ContentType"`
 	Extension   string `json:"Extension"`
 }
 
-var JsonText = ""
+type JsonDataEntity struct {
+	m        map[string]interface{}
+	gobBuf   []byte
+	jsonData []byte
+	sync.RWMutex
+}
+
+func (j *JsonDataEntity) New(jsonData []byte) error {
+	defer j.Unlock()
+	j.Lock()
+
+	j.jsonData = jsonData
+	err := json.Unmarshal(jsonData, &j.m)
+	if err != nil {
+		return err
+	}
+
+	buf := bytes.NewBuffer(nil)
+	err = gob.NewEncoder(buf).Encode(j.m)
+	if err != nil {
+		return err
+	}
+	j.gobBuf = buf.Bytes()
+	return nil
+}
+func (j *JsonDataEntity) Parse(v interface{}) {
+	json.Unmarshal(j.jsonData, v)
+}
+func (j *JsonDataEntity) Stringify() string {
+	return string(j.jsonData)
+}
+func (j *JsonDataEntity) CopyMap() map[string]interface{} {
+	copyMap := make(map[string]interface{})
+	buf := bytes.NewBuffer(j.gobBuf)
+	gob.NewDecoder(buf).Decode(&copyMap)
+	return copyMap
+}
+
+var JsonData = &JsonDataEntity{}
+
 var Config = &struct {
 	ViewDir           string              `json:"ViewDir"`           //
 	UploadDir         string              `json:"UploadDir"`         //

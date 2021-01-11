@@ -350,9 +350,16 @@ x-world/x-vrml	xof
 type ViewActionMappingResult struct {
 }
 
+var fileNameRegexp = regexp.MustCompile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
+
 func (r *ViewActionMappingResult) Apply(context *Context) {
 
 	path := context.Request.URL.Path
+
+	viewSubDir := context.Function.controller.ViewSubDir
+	if strings.EqualFold(viewSubDir, "") == false {
+		viewSubDir = viewSubDir + "/"
+	}
 
 	if strings.EqualFold(path, "/") {
 		if strings.EqualFold(conf.Config.DefaultPage, "") == false {
@@ -366,20 +373,20 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 
 	path = strings.TrimRight(path, "/")
 	//b, err := ioutil.ReadFile(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
-	b, err := cache.Read(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
+	b, err := cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + "/" + path + conf.Config.ViewSuffix))
 	if err != nil {
 		//不存在
 		//fmt.Println(context.Request.Header)
 
 		var haveMIME = false
 		//b, err := ioutil.ReadFile(conf.Config.ViewDir + path)
-		b, err := cache.Read(conf.Config.ViewDir + path)
+		b, err := cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + "/" + path))
 		if err == nil {
-			re, err := regexp.Compile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
+
 			glog.Error(err)
 
-			if re.MatchString(path) {
-				Groups := re.FindAllStringSubmatch(path, -1)
+			if fileNameRegexp.MatchString(path) {
+				Groups := fileNameRegexp.FindAllStringSubmatch(path, -1)
 				//[[/fgsd_gffdgdf.txt fgsd_gffdgdf txt]]
 				//{"ContentType": "text/html","Extension":"html"}
 				Extension := Groups[0][2]
@@ -510,15 +517,16 @@ func (r *cacheHTMLResult) Apply(context *Context) {
 		glog.Error(os.MkdirAll(cacheDir, os.ModePerm))
 	}
 
-	rp := regexp.MustCompile(`\s{2,}`)
-	dataByte = rp.ReplaceAll(dataByte, []byte(" "))
+	dataByte = emptyTextRegexp.ReplaceAll(dataByte, []byte(" "))
 
-	rp = regexp.MustCompile(`[\r\n]`)
-	dataByte = rp.ReplaceAll(dataByte, []byte{})
+	dataByte = wrapTextRegexp.ReplaceAll(dataByte, []byte{})
 
 	glog.Error(ioutil.WriteFile(cacheFile, dataByte, os.ModePerm))
 	context.Response.Write(dataByte)
 }
+
+var emptyTextRegexp = regexp.MustCompile(`\s{2,}`)
+var wrapTextRegexp = regexp.MustCompile(`[\r\n]`)
 
 //只映射已经定义的后缀模板文件
 type HTMLResult struct {
@@ -604,10 +612,7 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 	data["time"] = time.Now().Unix() * 1000
 	data["rootPath"] = context.RoutePath
 
-	jsonData := make(map[string]interface{})
-	json.Unmarshal([]byte(conf.JsonText), &jsonData)
-
-	data["data"] = jsonData
+	data["data"] = conf.JsonData.CopyMap()
 
 	return data
 	//context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
