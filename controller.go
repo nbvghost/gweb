@@ -23,8 +23,8 @@ type Context struct {
 	Session    *Session
 	PathParams map[string]string
 	RoutePath  string //route 的路径，相当于router根目录,请求request path remove restful path
-	Data       map[string]interface{}
-	Function   *Function
+	//Data       interface{}
+	Function *Function
 }
 
 func (c *Context) Clone() Context {
@@ -34,7 +34,7 @@ func (c *Context) Clone() Context {
 		Session:    c.Session,
 		PathParams: c.PathParams,
 		RoutePath:  c.RoutePath,
-		Data:       c.Data,
+		//Data:       c.Data,
 	}
 }
 
@@ -101,7 +101,8 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server-Ver", conf.Config.Ver)
 	//c.Unlock()
 
-	var context = &Context{Response: w, Request: r, Session: session, Data: conf.JsonData.CopyMap(), PathParams: mux.Vars(r), Function: function}
+	pathParams := mux.Vars(r)
+	var context = &Context{Response: w, Request: r, Session: session, PathParams: pathParams, Function: function}
 
 	//context.RootPath=
 
@@ -112,6 +113,16 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			//todo:这个地方修改没有测试，原逻辑会导致路由被修改而异常
 			context.RoutePath = function.controller.RoutePath
+
+			varsRegexp := regexp.MustCompile("\\{(.*?)+\\}")
+			if varsRegexp.MatchString(context.RoutePath) {
+				context.RoutePath = varsRegexp.ReplaceAllStringFunc(context.RoutePath, func(s string) string {
+					ss := s[1 : len(s)-1]
+					return pathParams[ss]
+				})
+			}
+
+			//url, err := function.controller.Router.//.Queries().URL(mapToPairs(mux.Vars(r))...)
 			//url, err := function.controller.Router.Queries().URL(mapToPairs(mux.Vars(r))...)
 			//if err != nil {
 			//	context.RoutePath = "/" + strings.Trim(function.controller.RoutePath, "/") + "/"
@@ -253,7 +264,8 @@ func NewStaticController(controller IController, actionName string) IController 
 		path = "/" + strings.Trim(actionName, "/") + "/"
 	}
 	route := AppRouter.PathPrefix(path)
-	route.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	glog.Panic(route.GetError())
+	h := route.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 
 		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 		cAddr := c.Addr()
@@ -267,6 +279,7 @@ func NewStaticController(controller IController, actionName string) IController 
 
 		function.ServeHTTP(writer, request)
 	})
+	glog.Panic(h.GetError())
 
 	v := reflect.ValueOf(controller)
 	RoutePathValue := v.Elem().FieldByName("RoutePath")
@@ -285,7 +298,9 @@ type NotFoundHandler struct {
 }
 
 func (h *NotFoundHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	h.function.RoutePath = strings.ReplaceAll(request.URL.Path, h.function.controller.RoutePath, "")
+	if h.function.controller.RoutePath != "/" {
+		h.function.RoutePath = "/" + strings.ReplaceAll(request.URL.Path, h.function.controller.RoutePath, "")
+	}
 	h.function.ServeHTTP(writer, request)
 }
 
@@ -297,7 +312,7 @@ func NewController(controller IController, dirName, viewSubDir string) IControll
 	var routePath string
 
 	if strings.EqualFold(path, "/") == false {
-		AppRouter.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+		h := AppRouter.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
 			c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 			function := &Function{
@@ -309,12 +324,14 @@ func NewController(controller IController, dirName, viewSubDir string) IControll
 
 			function.ServeHTTP(writer, request)
 		})
+		glog.Panic(h.GetError())
 		routePath = path + "/"
 	} else {
 		routePath = "/"
 	}
 
 	route := AppRouter.PathPrefix(routePath)
+	glog.Panic(route.GetError())
 	router := route.Subrouter()
 
 	c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
@@ -345,7 +362,7 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 
 	path := "/" + strings.Trim(actionName, "/") + "/"
 
-	c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
+	h := c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
 		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 		function := &Function{
@@ -357,8 +374,10 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 
 		function.ServeHTTP(writer, request)
 	})
+	glog.Panic(h.GetError())
 
 	route := c.Router.PathPrefix(path)
+	glog.Panic(route.GetError())
 	router := route.Subrouter()
 
 	v := reflect.ValueOf(controller)
@@ -398,7 +417,9 @@ func (c *Controller) AddHandler(function *Function) {
 		methods = append(methods, string(MethodGet))
 	}
 
-	c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function).Methods(methods...)
+	h := c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function)
+	glog.Panic(h.GetError())
+	h.Methods(methods...)
 
 }
 
@@ -409,7 +430,11 @@ func (c *Controller) AddStaticHandler(function *Function) {
 	}
 	function.controller = c
 
-	c.Router.PathPrefix("/" + strings.Trim(function.RoutePath, "/") + "/").Handler(function).Methods(http.MethodGet)
+	p := c.Router.PathPrefix("/" + strings.Trim(function.RoutePath, "/") + "/")
+	glog.Panic(p.GetError())
+	h := p.Handler(function)
+	glog.Panic(h.GetError())
+	h.Methods(http.MethodGet)
 }
 
 func (c *Controller) doAction(context *Context, f *Function) Result {

@@ -612,7 +612,7 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 	data["time"] = time.Now().Unix() * 1000
 	data["rootPath"] = context.RoutePath
 
-	data["data"] = conf.JsonData.CopyMap()
+	data["data"] = conf.JsonData.Copy()
 
 	return data
 	//context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
