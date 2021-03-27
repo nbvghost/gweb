@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nbvghost/gweb/cache"
-	"github.com/nbvghost/gweb/tool/encryption"
+	"github.com/nbvghost/tool/encryption"
 
 	"html/template"
 	"net/http/httptest"
@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/nbvghost/gweb/conf"
-	"github.com/nbvghost/gweb/tool"
 )
 
 var _ Result = (*ErrorResult)(nil)
@@ -430,7 +429,7 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 
 		data := make(map[string]interface{})
 		data["session"] = context.Session.Attributes.GetMap()
-		data["query"] = tool.QueryParams(context.Request.URL.Query())
+		data["query"] = QueryParams(context.Request.URL.Query())
 
 		glog.Error(t.Execute(context.Response, data))
 	}
@@ -513,7 +512,7 @@ func (r *cacheHTMLResult) Apply(context *Context) {
 	cacheDir := fmt.Sprintf("cache/%v", r.ServiceName)
 	cacheFile := cacheDir + "/" + fullPathMd5
 
-	if tool.IsFileExist(cacheDir) == false {
+	if IsFileExist(cacheDir) == false {
 		glog.Error(os.MkdirAll(cacheDir, os.ModePerm))
 	}
 
@@ -605,7 +604,7 @@ func (r *HTMLResult) Apply(context *Context) {
 func createPageParams(context *Context, Params map[string]interface{}) map[string]interface{} {
 	data := make(map[string]interface{})
 	data["session"] = context.Session.Attributes.GetMap()
-	data["query"] = tool.QueryParams(context.Request.URL.Query())
+	data["query"] = QueryParams(context.Request.URL.Query())
 	data["params"] = Params
 	data["debug"] = conf.Config.Debug
 	data["host"] = context.Request.Host

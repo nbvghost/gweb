@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/conf"
-	"github.com/nbvghost/gweb/tool/number"
+	"github.com/nbvghost/tool/object"
 	"html/template"
 	"log"
 	"net/url"
@@ -216,11 +216,11 @@ func (fo *FuncObject) toJSON(source interface{}) string {
 }
 func (fo *FuncObject) parseInt(source interface{}) int {
 
-	return number.ParseInt(source)
+	return object.ParseInt(source)
 }
 
 func (fo *FuncObject) parseFloat(source interface{}) float64 {
-	return number.ParseFloat(source)
+	return object.ParseFloat(source)
 }
 
 /*func cipherDecrypter(source string) string {

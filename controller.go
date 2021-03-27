@@ -7,8 +7,9 @@ import (
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/cache"
 	"github.com/nbvghost/gweb/conf"
-	"github.com/nbvghost/gweb/tool"
-	"github.com/nbvghost/gweb/tool/encryption"
+	"github.com/nbvghost/tool"
+	"github.com/nbvghost/tool/encryption"
+
 	"net/http"
 	"reflect"
 	"regexp"
