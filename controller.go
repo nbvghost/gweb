@@ -7,7 +7,6 @@ import (
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/cache"
 	"github.com/nbvghost/gweb/conf"
-	"github.com/nbvghost/tool"
 	"github.com/nbvghost/tool/encryption"
 
 	"net/http"
@@ -80,7 +79,7 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var GLSESSIONID string
 	if err != nil || strings.EqualFold(cookie.Value, "") {
 
-		GLSESSIONID = tool.UUID()
+		GLSESSIONID = encryption.CipherEncrypter(encryption.NewSecretKey(conf.Config.SecureKey), fmt.Sprintf("%s", time.Now().Format("2006-01-02 15:04:05")))
 		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: conf.Config.SessionExpires})
 		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
 		Sessions.AddSession(GLSESSIONID, session)

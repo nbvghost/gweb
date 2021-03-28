@@ -86,6 +86,7 @@ var Config = &struct {
 	Name              string              `json:"Name"`              //
 	Ver               string              `json:"Ver"`               //
 	SessionExpires    int                 `json:"SessionExpires"`    //
+	SecureKey         string              `json:"SecureKey"`         //
 
 }{
 	ViewDir:     "view",
