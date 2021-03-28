@@ -1,7 +1,5 @@
 github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
 github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
-github.com/nbvghost/glog v1.0.6 h1:1CNO5V0RZ1ctZFIWzDwQF7foVuzD6kGbklVqbUvBrsY=
-github.com/nbvghost/glog v1.0.6/go.mod h1:MpQrW1hH71geowXb/iED845KLTgcqEXETwLmqZH7vVE=
 github.com/nbvghost/glog v1.0.15 h1:EVrgNRngWQ6/QdpJ9kb6soyU5j2nYImHuVY4YqQ5QU8=
 github.com/nbvghost/glog v1.0.15/go.mod h1:MpQrW1hH71geowXb/iED845KLTgcqEXETwLmqZH7vVE=
 github.com/nbvghost/tool v0.0.0-20210202062235-ac72a32e5005 h1:jYw94E59HLvwJfITyErBQQtygtAUQKiWcULQIq2oo8g=
