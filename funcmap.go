@@ -209,10 +209,10 @@ func (fo *FuncObject) dateTimeFormat(source time.Time, format string) string {
 	//fmt.Println(format)
 	return source.Format(format)
 }
-func (fo *FuncObject) toJSON(source interface{}) string {
+func (fo *FuncObject) toJSON(source interface{}) template.JS {
 	b, err := json.Marshal(source)
 	glog.Error(err)
-	return string(b)
+	return template.JS(b)
 }
 func (fo *FuncObject) parseInt(source interface{}) int {
 
