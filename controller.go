@@ -38,12 +38,20 @@ func (c *Context) Clone() Context {
 	}
 }
 
-type ActionFunction func(context *Context) Result
+type IController interface {
+	DefaultHandle(context *Context) Result
+	NotFoundHandler(context *Context) Result
+}
+
+type IHandler interface {
+	Handle(context *Context) Result
+	HttpMethod() []HttpMethod
+}
 
 type Function struct {
 	Methods    []HttpMethod
 	RoutePath  string
-	Function   ActionFunction
+	Handler    IHandler
 	controller *Controller
 }
 
@@ -218,18 +226,12 @@ const (
 	MethodTrace   HttpMethod = "TRACE"
 )
 
-func NewFunction(RoutePath string, call ActionFunction, args ...HttpMethod) *Function {
+func NewFunction(RoutePath string, call IHandler) *Function {
 	function := &Function{}
-	function.Methods = args
+	function.Methods = call.HttpMethod()
 	function.RoutePath = RoutePath
-	function.Function = call
+	function.Handler = call
 	return function
-}
-
-type IController interface {
-	Init()
-	DefaultHandle(context *Context) Result
-	NotFoundHandler(context *Context) Result
 }
 
 var AppRouter = mux.NewRouter()
@@ -271,9 +273,9 @@ func NewStaticController(controller IController, actionName string) IController 
 		cAddr := c.Addr()
 
 		function := &Function{
-			Methods:    []HttpMethod{MethodGet},
-			RoutePath:  "*",
-			Function:   controller.DefaultHandle,
+			Methods:   []HttpMethod{MethodGet},
+			RoutePath: "*",
+			//Handler:    controller.DefaultHandle,//todo:
 			controller: cAddr.Interface().(*Controller),
 		}
 
@@ -287,8 +289,6 @@ func NewStaticController(controller IController, actionName string) IController 
 
 	//RouteValue := v.Elem().FieldByName("Router")
 	//RouteValue.Set(reflect.ValueOf(route.Subrouter()))
-
-	controller.Init()
 
 	return controller
 }
@@ -316,9 +316,9 @@ func NewController(controller IController, dirName, viewSubDir string) IControll
 			c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 			function := &Function{
-				Methods:    []HttpMethod{MethodGet},
-				RoutePath:  path,
-				Function:   controller.DefaultHandle,
+				Methods:   []HttpMethod{MethodGet},
+				RoutePath: path,
+				//Function:   controller.DefaultHandle,//todo:
 				controller: c.Addr().Interface().(*Controller),
 			}
 
@@ -336,8 +336,8 @@ func NewController(controller IController, dirName, viewSubDir string) IControll
 
 	c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 	function := &Function{
-		Methods:    []HttpMethod{MethodGet},
-		Function:   controller.NotFoundHandler,
+		Methods: []HttpMethod{MethodGet},
+		//Function:   controller.NotFoundHandler,//todo:
 		controller: c.Addr().Interface().(*Controller),
 	}
 
@@ -353,7 +353,6 @@ func NewController(controller IController, dirName, viewSubDir string) IControll
 	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
 	ViewSubDirValue.Set(reflect.ValueOf(strings.Trim(viewSubDir, "/")))
 
-	controller.Init()
 	return controller
 
 }
@@ -366,9 +365,9 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 		function := &Function{
-			Methods:    []HttpMethod{MethodGet},
-			RoutePath:  "*",
-			Function:   controller.DefaultHandle,
+			Methods:   []HttpMethod{MethodGet},
+			RoutePath: "*",
+			//Function:   controller.DefaultHandle,//todo:
 			controller: c.Addr().Interface().(*Controller),
 		}
 
@@ -394,14 +393,12 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
 	ViewSubDirValue.Set(reflect.ValueOf(c.ViewSubDir))
 
-	controller.Init()
-
 	return controller
 
 }
 
-///func(context *Context) Result
-func (c *Controller) AddHandler(function *Function) {
+func (c *Controller) AddHandler(routePath string, call IHandler) {
+	function := NewFunction(routePath, call)
 	if strings.EqualFold(function.RoutePath, "") {
 		panic(errors.New("不允许有空的路由"))
 		return
@@ -443,7 +440,7 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 	if f == nil {
 		result = &ViewActionMappingResult{}
 	} else {
-		result = f.Function(context)
+		result = f.Handler.Handle(context)
 		if result == nil {
 			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
 		}
