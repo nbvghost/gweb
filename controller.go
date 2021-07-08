@@ -17,6 +17,18 @@ import (
 	"time"
 )
 
+type handler struct {
+	call func(context *Context) Result
+}
+
+func (h *handler) Handle(context *Context) Result {
+	return h.call(context)
+}
+
+func (h *handler) HttpMethod() []HttpMethod {
+	return []HttpMethod{MethodGet}
+}
+
 type Context struct {
 	Response   http.ResponseWriter
 	Request    *http.Request
@@ -54,10 +66,6 @@ type Function struct {
 	Handler    IHandler
 	controller *Controller
 }
-
-/*func getRootPath() string {
-
-}*/
 
 func mapToPairs(m map[string]string) []string {
 	var i int
@@ -129,29 +137,10 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					return pathParams[ss]
 				})
 			}
-
-			//url, err := function.controller.Router.//.Queries().URL(mapToPairs(mux.Vars(r))...)
-			//url, err := function.controller.Router.Queries().URL(mapToPairs(mux.Vars(r))...)
-			//if err != nil {
-			//	context.RoutePath = "/" + strings.Trim(function.controller.RoutePath, "/") + "/"
-			//} else {
-			//	context.RoutePath = "/" + strings.Trim(url.Path, "/") + "/"
-			//}
 		}
 
 		interceptor := function.controller.Interceptors.Get()
 
-		//todo:不主动获取拦截器，必须指定
-		/*controller := function.controller.ParentController
-		for controller != nil {
-			//interceptor=controller.Interceptors.Get(); interceptor != nil
-			if interceptor == nil {
-				interceptor = controller.Interceptors.Get()
-			} else {
-				break
-			}
-
-		}*/
 		if interceptor == nil {
 			function.controller.doAction(context, function).Apply(context)
 		} else {
@@ -207,7 +196,7 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		(&Controller{}).doAction(context, function).Apply(context)
-		panic(errors.New("Function 无法获取 Controller"))
+		panic(errors.New("function 无法获取 controller"))
 	}
 
 }
@@ -273,9 +262,9 @@ func NewStaticController(controller IController, actionName string) IController 
 		cAddr := c.Addr()
 
 		function := &Function{
-			Methods:   []HttpMethod{MethodGet},
-			RoutePath: "*",
-			//Handler:    controller.DefaultHandle,//todo:
+			Methods:    []HttpMethod{MethodGet},
+			RoutePath:  "*",
+			Handler:    &handler{call: controller.DefaultHandle},
 			controller: cAddr.Interface().(*Controller),
 		}
 
@@ -316,9 +305,9 @@ func NewController(controller IController, dirName, viewSubDir string) IControll
 			c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 			function := &Function{
-				Methods:   []HttpMethod{MethodGet},
-				RoutePath: path,
-				//Function:   controller.DefaultHandle,//todo:
+				Methods:    []HttpMethod{MethodGet},
+				RoutePath:  path,
+				Handler:    &handler{call: controller.DefaultHandle},
 				controller: c.Addr().Interface().(*Controller),
 			}
 
@@ -336,8 +325,8 @@ func NewController(controller IController, dirName, viewSubDir string) IControll
 
 	c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 	function := &Function{
-		Methods: []HttpMethod{MethodGet},
-		//Function:   controller.NotFoundHandler,//todo:
+		Methods:    []HttpMethod{MethodGet},
+		Handler:    &handler{call: controller.DefaultHandle},
 		controller: c.Addr().Interface().(*Controller),
 	}
 
@@ -365,9 +354,9 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 		function := &Function{
-			Methods:   []HttpMethod{MethodGet},
-			RoutePath: "*",
-			//Function:   controller.DefaultHandle,//todo:
+			Methods:    []HttpMethod{MethodGet},
+			RoutePath:  "*",
+			Handler:    &handler{call: controller.DefaultHandle},
 			controller: c.Addr().Interface().(*Controller),
 		}
 
@@ -449,7 +438,7 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 	return result
 }
 
-var removeSeparatorRegexp = regexp.MustCompile("(\\/)+")
+var removeSeparatorRegexp = regexp.MustCompile("/+")
 
 func fixPath(path string) string {
 	return removeSeparatorRegexp.ReplaceAllString(path, "/")

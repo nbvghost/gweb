@@ -49,7 +49,7 @@ func TestRegisterRenderFunction(t *testing.T) {
 				t.Errorf("RegisterRenderFunction() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			funcMap := NewFuncMap(&Context{RootPath: "fdsfdsf"})
+			funcMap := NewFuncMap(&Context{RoutePath: "fdsfdsf"})
 
 			/*argsList := make([]reflect.Value, 0)
 			for _, arg := range tt.args.args {
