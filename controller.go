@@ -8,7 +8,6 @@ import (
 	"github.com/nbvghost/gweb/cache"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/tool/encryption"
-	"log"
 	"runtime/debug"
 	"time"
 
@@ -69,6 +68,10 @@ MethodOptions = "OPTIONS"
 MethodTrace   = "TRACE"
 */
 
+type IHandlerGet interface {
+	IHandler
+	HandleGet(context *Context) Result
+}
 type IHandlerPost interface {
 	IHandler
 	HandlePost(context *Context) Result
@@ -120,17 +123,6 @@ type Function struct {
 	RoutePath  string
 	Handler    IHandler
 	controller *Controller
-}
-
-func mapToPairs(m map[string]string) []string {
-	var i int
-	p := make([]string, len(m)*2)
-	for k, v := range m {
-		p[i] = k
-		p[i+1] = v
-		i += 2
-	}
-	return p
 }
 
 func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -327,28 +319,46 @@ func (c *Controller) AddHandler(routePath string, call IHandler) {
 	}
 	function.controller = c
 
-	log.Println(reflect.TypeOf(call).Name())
-
 	var methods []string
-	switch call.(type) {
-	case IHandlerPost:
-		methods = append(methods, http.MethodPost)
-	case IHandlerHead:
-		methods = append(methods, http.MethodHead)
-	case IHandlerPut:
-		methods = append(methods, http.MethodPut)
-	case IHandlerPatch:
-		methods = append(methods, http.MethodPatch)
-	case IHandlerDelete:
-		methods = append(methods, http.MethodDelete)
-	case IHandlerConnect:
-		methods = append(methods, http.MethodConnect)
-	case IHandlerOptions:
-		methods = append(methods, http.MethodOptions)
-	case IHandlerTrace:
-		methods = append(methods, http.MethodTrace)
-	default:
+	if _, ok := call.(IHandlerGet); ok {
 		methods = append(methods, http.MethodGet)
+	}
+	if _, ok := call.(IHandlerPost); ok {
+		methods = append(methods, http.MethodPost)
+	}
+	if _, ok := call.(IHandlerHead); ok {
+		methods = append(methods, http.MethodHead)
+	}
+	if _, ok := call.(IHandlerPut); ok {
+		methods = append(methods, http.MethodPut)
+	}
+	if _, ok := call.(IHandlerPatch); ok {
+		methods = append(methods, http.MethodPatch)
+	}
+	if _, ok := call.(IHandlerDelete); ok {
+		methods = append(methods, http.MethodDelete)
+	}
+	if _, ok := call.(IHandlerConnect); ok {
+		methods = append(methods, http.MethodConnect)
+	}
+	if _, ok := call.(IHandlerOptions); ok {
+		methods = append(methods, http.MethodOptions)
+	}
+	if _, ok := call.(IHandlerTrace); ok {
+		methods = append(methods, http.MethodTrace)
+	}
+	if len(methods) == 0 {
+		methods = append(methods,
+			http.MethodGet,
+			http.MethodHead,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodConnect,
+			http.MethodOptions,
+			http.MethodTrace,
+		)
 	}
 
 	h := c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function)
@@ -376,29 +386,54 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 	if f == nil {
 		result = &ViewActionMappingResult{}
 	} else {
-		log.Println(f.Handler)
-		switch f.Handler.(type) {
-		case IHandlerPost:
-			result = f.Handler.(IHandlerPost).HandlePost(context)
-		case IHandlerHead:
-			result = f.Handler.(IHandlerHead).HandleHead(context)
-		case IHandlerPut:
-			result = f.Handler.(IHandlerPut).HandlePut(context)
-		case IHandlerPatch:
-			result = f.Handler.(IHandlerPatch).HandlePatch(context)
-		case IHandlerDelete:
-			result = f.Handler.(IHandlerDelete).HandleDelete(context)
-		case IHandlerConnect:
-			result = f.Handler.(IHandlerConnect).HandleConnect(context)
-		case IHandlerOptions:
-			result = f.Handler.(IHandlerOptions).HandleOptions(context)
-		case IHandlerTrace:
-			result = f.Handler.(IHandlerTrace).HandleTrace(context)
+
+		switch context.Request.Method {
+		case http.MethodGet:
+			if handler, ok := f.Handler.(IHandlerGet); ok {
+				result = handler.HandleGet(context)
+			}
+		case http.MethodHead:
+			if handler, ok := f.Handler.(IHandlerHead); ok {
+				result = handler.HandleHead(context)
+			}
+		case http.MethodPost:
+			if handler, ok := f.Handler.(IHandlerPost); ok {
+				result = handler.HandlePost(context)
+			}
+		case http.MethodPut:
+			if handler, ok := f.Handler.(IHandlerPut); ok {
+				result = handler.HandlePut(context)
+			}
+		case http.MethodPatch:
+			if handler, ok := f.Handler.(IHandlerPatch); ok {
+				result = handler.HandlePatch(context)
+			}
+		case http.MethodDelete:
+			if handler, ok := f.Handler.(IHandlerDelete); ok {
+				result = handler.HandleDelete(context)
+			}
+		case http.MethodConnect:
+			if handler, ok := f.Handler.(IHandlerConnect); ok {
+				result = handler.HandleConnect(context)
+			}
+		case http.MethodOptions:
+			if handler, ok := f.Handler.(IHandlerOptions); ok {
+				result = handler.HandleOptions(context)
+			}
+		case http.MethodTrace:
+			if handler, ok := f.Handler.(IHandlerTrace); ok {
+				result = handler.HandleTrace(context)
+			}
 		default:
 			result = f.Handler.Handle(context)
 		}
 
 		if result == nil {
+			result = f.Handler.Handle(context)
+		}
+
+		if result == nil {
+
 			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
 		}
 	}
