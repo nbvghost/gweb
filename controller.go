@@ -8,14 +8,21 @@ import (
 	"github.com/nbvghost/gweb/cache"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/tool/encryption"
+	"log"
+	"runtime/debug"
+	"time"
 
 	"net/http"
 	"reflect"
 	"regexp"
-	"runtime/debug"
 	"strings"
-	"time"
 )
+
+var removeSeparatorRegexp = regexp.MustCompile("/+")
+
+func fixPath(path string) string {
+	return removeSeparatorRegexp.ReplaceAllString(path, "/")
+}
 
 type handler struct {
 	call func(context *Context) Result
@@ -25,18 +32,13 @@ func (h *handler) Handle(context *Context) Result {
 	return h.call(context)
 }
 
-func (h *handler) HttpMethod() []HttpMethod {
-	return []HttpMethod{MethodGet}
-}
-
 type Context struct {
-	Response   http.ResponseWriter
-	Request    *http.Request
-	Session    *Session
-	PathParams map[string]string
-	RoutePath  string //route 的路径，相当于router根目录,请求request path remove restful path
-	//Data       interface{}
-	Function *Function
+	Response   http.ResponseWriter //
+	Request    *http.Request       //
+	Session    *Session            //
+	PathParams map[string]string   //
+	RoutePath  string              //route 的路径，相当于router根目录,请求request path remove restful path
+	Function   *Function           //
 }
 
 func (c *Context) Clone() Context {
@@ -55,13 +57,66 @@ type IController interface {
 	NotFoundHandler(context *Context) Result
 }
 
+/*
+MethodGet     = "GET"
+MethodHead    = "HEAD"
+MethodPost    = "POST"
+MethodPut     = "PUT"
+MethodPatch   = "PATCH" // RFC 5789
+MethodDelete  = "DELETE"
+MethodConnect = "CONNECT"
+MethodOptions = "OPTIONS"
+MethodTrace   = "TRACE"
+*/
+
+type IHandlerPost interface {
+	IHandler
+	HandlePost(context *Context) Result
+}
+type IHandlerHead interface {
+	IHandler
+	HandleHead(context *Context) Result
+}
+type IHandlerPut interface {
+	IHandler
+	HandlePut(context *Context) Result
+}
+type IHandlerPatch interface {
+	IHandler
+	HandlePatch(context *Context) Result
+}
+type IHandlerDelete interface {
+	IHandler
+	HandleDelete(context *Context) Result
+}
+type IHandlerConnect interface {
+	IHandler
+	HandleConnect(context *Context) Result
+}
+type IHandlerOptions interface {
+	IHandler
+	HandleOptions(context *Context) Result
+}
+type IHandlerTrace interface {
+	IHandler
+	HandleTrace(context *Context) Result
+}
 type IHandler interface {
 	Handle(context *Context) Result
-	HttpMethod() []HttpMethod
+}
+
+type NotFoundHandler struct {
+	function *Function
+}
+
+func (h *NotFoundHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if h.function.controller.RoutePath != "/" {
+		h.function.RoutePath = "/" + strings.ReplaceAll(request.URL.Path, h.function.controller.RoutePath, "")
+	}
+	h.function.ServeHTTP(writer, request)
 }
 
 type Function struct {
-	Methods    []HttpMethod
 	RoutePath  string
 	Handler    IHandler
 	controller *Controller
@@ -140,7 +195,6 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		interceptor := function.controller.Interceptors.Get()
-
 		if interceptor == nil {
 			function.controller.doAction(context, function).Apply(context)
 		} else {
@@ -194,30 +248,14 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-
 		(&Controller{}).doAction(context, function).Apply(context)
 		panic(errors.New("function 无法获取 controller"))
 	}
 
 }
 
-type HttpMethod string
-
-const (
-	MethodGet     HttpMethod = "GET"
-	MethodHead    HttpMethod = "HEAD"
-	MethodPost    HttpMethod = "POST"
-	MethodPut     HttpMethod = "PUT"
-	MethodPatch   HttpMethod = "PATCH" // RFC 5789
-	MethodDelete  HttpMethod = "DELETE"
-	MethodConnect HttpMethod = "CONNECT"
-	MethodOptions HttpMethod = "OPTIONS"
-	MethodTrace   HttpMethod = "TRACE"
-)
-
 func NewFunction(RoutePath string, call IHandler) *Function {
 	function := &Function{}
-	function.Methods = call.HttpMethod()
 	function.RoutePath = RoutePath
 	function.Handler = call
 	return function
@@ -225,14 +263,14 @@ func NewFunction(RoutePath string, call IHandler) *Function {
 
 var AppRouter = mux.NewRouter()
 
-//var _ IController = (*Controller)(nil)
+var _ IController = &Controller{}
 
 type Controller struct {
-	RoutePath        string //定义路由的路径
-	Interceptors     Interceptors
-	ParentController *Controller
-	Router           *mux.Router //dir
-	ViewSubDir       string
+	RoutePath        string       //定义路由的路径
+	Interceptors     Interceptors //
+	ParentController *Controller  //
+	Router           *mux.Router  //dir
+	ViewSubDir       string       //
 }
 
 func (c *Controller) DefaultHandle(context *Context) Result {
@@ -245,116 +283,13 @@ func (c *Controller) NotFoundHandler(context *Context) Result {
 
 	return &EmptyResult{}
 }
-
-func NewStaticController(controller IController, actionName string) IController {
-
-	path := "/" + strings.Trim(actionName, "/") + "/"
-	if strings.EqualFold(actionName, "/") || strings.EqualFold(actionName, "") {
-		path = "/"
-	} else {
-		path = "/" + strings.Trim(actionName, "/") + "/"
-	}
-	route := AppRouter.PathPrefix(path)
-	glog.Panic(route.GetError())
-	h := route.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-
-		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
-		cAddr := c.Addr()
-
-		function := &Function{
-			Methods:    []HttpMethod{MethodGet},
-			RoutePath:  "*",
-			Handler:    &handler{call: controller.DefaultHandle},
-			controller: cAddr.Interface().(*Controller),
-		}
-
-		function.ServeHTTP(writer, request)
-	})
-	glog.Panic(h.GetError())
-
-	v := reflect.ValueOf(controller)
-	RoutePathValue := v.Elem().FieldByName("RoutePath")
-	RoutePathValue.SetString(path)
-
-	//RouteValue := v.Elem().FieldByName("Router")
-	//RouteValue.Set(reflect.ValueOf(route.Subrouter()))
-
-	return controller
-}
-
-type NotFoundHandler struct {
-	function *Function
-}
-
-func (h *NotFoundHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	if h.function.controller.RoutePath != "/" {
-		h.function.RoutePath = "/" + strings.ReplaceAll(request.URL.Path, h.function.controller.RoutePath, "")
-	}
-	h.function.ServeHTTP(writer, request)
-}
-
-// /
-// dirName
-func NewController(controller IController, dirName, viewSubDir string) IController {
-	path := "/" + strings.Trim(dirName, "/")
-
-	var routePath string
-
-	if strings.EqualFold(path, "/") == false {
-		h := AppRouter.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
-			c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
-
-			function := &Function{
-				Methods:    []HttpMethod{MethodGet},
-				RoutePath:  path,
-				Handler:    &handler{call: controller.DefaultHandle},
-				controller: c.Addr().Interface().(*Controller),
-			}
-
-			function.ServeHTTP(writer, request)
-		})
-		glog.Panic(h.GetError())
-		routePath = path + "/"
-	} else {
-		routePath = "/"
-	}
-
-	route := AppRouter.PathPrefix(routePath)
-	glog.Panic(route.GetError())
-	router := route.Subrouter()
-
-	c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
-	function := &Function{
-		Methods:    []HttpMethod{MethodGet},
-		Handler:    &handler{call: controller.DefaultHandle},
-		controller: c.Addr().Interface().(*Controller),
-	}
-
-	router.NotFoundHandler = &NotFoundHandler{function: function}
-
-	v := reflect.ValueOf(controller)
-	RoutePathValue := v.Elem().FieldByName("RoutePath")
-	RoutePathValue.SetString(routePath)
-
-	RouterValue := v.Elem().FieldByName("Router")
-	RouterValue.Set(reflect.ValueOf(router))
-
-	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
-	ViewSubDirValue.Set(reflect.ValueOf(strings.Trim(viewSubDir, "/")))
-
-	return controller
-
-}
-
 func (c *Controller) NewController(controller IController, actionName string) IController {
-
 	path := "/" + strings.Trim(actionName, "/") + "/"
 
 	h := c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
 		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
 
 		function := &Function{
-			Methods:    []HttpMethod{MethodGet},
 			RoutePath:  "*",
 			Handler:    &handler{call: controller.DefaultHandle},
 			controller: c.Addr().Interface().(*Controller),
@@ -381,9 +316,7 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 
 	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
 	ViewSubDirValue.Set(reflect.ValueOf(c.ViewSubDir))
-
 	return controller
-
 }
 
 func (c *Controller) AddHandler(routePath string, call IHandler) {
@@ -394,13 +327,28 @@ func (c *Controller) AddHandler(routePath string, call IHandler) {
 	}
 	function.controller = c
 
-	methods := make([]string, 0, len(function.Methods))
-	for _, method := range function.Methods {
-		methods = append(methods, string(method))
-	}
+	log.Println(reflect.TypeOf(call).Name())
 
-	if len(methods) == 0 {
-		methods = append(methods, string(MethodGet))
+	var methods []string
+	switch call.(type) {
+	case IHandlerPost:
+		methods = append(methods, http.MethodPost)
+	case IHandlerHead:
+		methods = append(methods, http.MethodHead)
+	case IHandlerPut:
+		methods = append(methods, http.MethodPut)
+	case IHandlerPatch:
+		methods = append(methods, http.MethodPatch)
+	case IHandlerDelete:
+		methods = append(methods, http.MethodDelete)
+	case IHandlerConnect:
+		methods = append(methods, http.MethodConnect)
+	case IHandlerOptions:
+		methods = append(methods, http.MethodOptions)
+	case IHandlerTrace:
+		methods = append(methods, http.MethodTrace)
+	default:
+		methods = append(methods, http.MethodGet)
 	}
 
 	h := c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function)
@@ -424,12 +372,32 @@ func (c *Controller) AddStaticHandler(function *Function) {
 }
 
 func (c *Controller) doAction(context *Context, f *Function) Result {
-
 	var result Result
 	if f == nil {
 		result = &ViewActionMappingResult{}
 	} else {
-		result = f.Handler.Handle(context)
+		log.Println(f.Handler)
+		switch f.Handler.(type) {
+		case IHandlerPost:
+			result = f.Handler.(IHandlerPost).HandlePost(context)
+		case IHandlerHead:
+			result = f.Handler.(IHandlerHead).HandleHead(context)
+		case IHandlerPut:
+			result = f.Handler.(IHandlerPut).HandlePut(context)
+		case IHandlerPatch:
+			result = f.Handler.(IHandlerPatch).HandlePatch(context)
+		case IHandlerDelete:
+			result = f.Handler.(IHandlerDelete).HandleDelete(context)
+		case IHandlerConnect:
+			result = f.Handler.(IHandlerConnect).HandleConnect(context)
+		case IHandlerOptions:
+			result = f.Handler.(IHandlerOptions).HandleOptions(context)
+		case IHandlerTrace:
+			result = f.Handler.(IHandlerTrace).HandleTrace(context)
+		default:
+			result = f.Handler.Handle(context)
+		}
+
 		if result == nil {
 			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
 		}
@@ -438,8 +406,82 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 	return result
 }
 
-var removeSeparatorRegexp = regexp.MustCompile("/+")
+// NewController dirName
+func NewController(controller IController, dirName, viewSubDir string) IController {
+	path := "/" + strings.Trim(dirName, "/")
 
-func fixPath(path string) string {
-	return removeSeparatorRegexp.ReplaceAllString(path, "/")
+	var routePath string
+
+	if strings.EqualFold(path, "/") == false {
+		h := AppRouter.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+			c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+
+			function := &Function{
+				RoutePath:  path,
+				Handler:    &handler{call: controller.DefaultHandle},
+				controller: c.Addr().Interface().(*Controller),
+			}
+
+			function.ServeHTTP(writer, request)
+		})
+		glog.Panic(h.GetError())
+		routePath = path + "/"
+	} else {
+		routePath = "/"
+	}
+
+	route := AppRouter.PathPrefix(routePath)
+	glog.Panic(route.GetError())
+	router := route.Subrouter()
+
+	c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+	function := &Function{
+		Handler:    &handler{call: controller.DefaultHandle},
+		controller: c.Addr().Interface().(*Controller),
+	}
+
+	router.NotFoundHandler = &NotFoundHandler{function: function}
+
+	v := reflect.ValueOf(controller)
+	RoutePathValue := v.Elem().FieldByName("RoutePath")
+	RoutePathValue.SetString(routePath)
+
+	RouterValue := v.Elem().FieldByName("Router")
+	RouterValue.Set(reflect.ValueOf(router))
+
+	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
+	ViewSubDirValue.Set(reflect.ValueOf(strings.Trim(viewSubDir, "/")))
+
+	return controller
+
+}
+func NewStaticController(controller IController, actionName string) IController {
+
+	path := "/" + strings.Trim(actionName, "/") + "/"
+	if strings.EqualFold(actionName, "/") || strings.EqualFold(actionName, "") {
+		path = "/"
+	} else {
+		path = "/" + strings.Trim(actionName, "/") + "/"
+	}
+	route := AppRouter.PathPrefix(path)
+	glog.Panic(route.GetError())
+	h := route.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+
+		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+		cAddr := c.Addr()
+
+		function := &Function{
+			RoutePath:  "*",
+			Handler:    &handler{call: controller.DefaultHandle},
+			controller: cAddr.Interface().(*Controller),
+		}
+
+		function.ServeHTTP(writer, request)
+	})
+	glog.Panic(h.GetError())
+
+	v := reflect.ValueOf(controller)
+	RoutePathValue := v.Elem().FieldByName("RoutePath")
+	RoutePathValue.SetString(path)
+	return controller
 }
