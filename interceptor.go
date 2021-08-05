@@ -10,7 +10,7 @@ const (
 type Interceptors struct {
 	//lock *sync.Mutex
 	//list []Interceptor
-	interceptor Interceptor
+	interceptor []Interceptor
 }
 
 type CacheConfig struct {
@@ -39,11 +39,29 @@ type Interceptor interface {
 	}
 	return len(inter.list)
 }*/
-func (inter *Interceptors) Get() Interceptor {
-	return inter.interceptor
+func (inter *Interceptors) ActionAfter(context *Context, result Result) Result {
+	for i := range inter.interceptor {
+		return inter.interceptor[i].ActionAfter(context, result)
+	}
+	return nil
 }
-func (inter *Interceptors) Set(value Interceptor) {
-	inter.interceptor = value
+func (inter *Interceptors) ActionService(context *Context) ServiceConfig {
+	for i := range inter.interceptor {
+		return inter.interceptor[i].ActionService(context)
+	}
+	return ServiceConfig{}
+}
+func (inter *Interceptors) ActionBefore(context *Context) (bool, Result) {
+	for i := range inter.interceptor {
+		canNext, r := inter.interceptor[i].ActionBefore(context)
+		if !canNext {
+			return canNext, r
+		}
+	}
+	return true, nil
+}
+func (inter *Interceptors) AddInterceptor(value Interceptor) {
+	inter.interceptor = append(inter.interceptor, value)
 	/*
 		if inter.list == nil {
 			inter.list = make([]Interceptor, 0)
