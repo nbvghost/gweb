@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"net/http"
-	"reflect"
 	"regexp"
 	"strings"
 )
@@ -52,10 +51,11 @@ func (c *Context) Clone() Context {
 }
 
 type IController interface {
-	DefaultHandle(context *Context) Result
-	NotFoundHandler(context *Context) Result
+	DefaultHandle(call IHandler)
+	NotFoundHandler(call IHandler)
 	AddHandler(routePath string, call IHandler)
 	AddInterceptor(value Interceptor)
+	NewController(actionName string) IController
 }
 
 /*
@@ -271,29 +271,31 @@ func (c *Controller) AddInterceptor(value Interceptor) {
 	c.Interceptors.AddInterceptor(value)
 }
 
-func (c *Controller) DefaultHandle(context *Context) Result {
-	panic("implement me")
+func (c *Controller) DefaultHandle(call IHandler) {
+	c.Router.NotFoundHandler = &NotFoundHandler{function: &Function{
+		Handler:    call,
+		controller: c,
+	}}
 }
 
-func (c *Controller) NotFoundHandler(context *Context) Result {
-
-	http.NotFound(context.Response, context.Request)
-
-	return &EmptyResult{}
+func (c *Controller) NotFoundHandler(call IHandler) {
+	c.Router.NotFoundHandler = &NotFoundHandler{function: &Function{
+		Handler:    call,
+		controller: c,
+	}}
 }
-func (c *Controller) NewController(controller IController, actionName string) IController {
-	path := "/" + strings.Trim(actionName, "/") + "/"
+func (c *Controller) NewController(actionName string) IController {
+	path := fmt.Sprintf("/%s/", strings.Trim(actionName, "/"))
 
 	h := c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
-		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
-
-		function := &Function{
+		//c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+		/*function := &Function{
 			RoutePath:  "*",
 			Handler:    &handler{call: controller.DefaultHandle},
 			controller: c.Addr().Interface().(*Controller),
 		}
 
-		function.ServeHTTP(writer, request)
+		function.ServeHTTP(writer, request)*/
 	})
 	glog.Panic(h.GetError())
 
@@ -301,7 +303,16 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 	glog.Panic(route.GetError())
 	router := route.Subrouter()
 
-	v := reflect.ValueOf(controller)
+	controller := &Controller{
+		RoutePath:        path,
+		Interceptors:     &Interceptors{},
+		ParentController: c,
+		Router:           router,
+		ViewSubDir:       c.ViewSubDir,
+	}
+	return controller
+
+	/*v := reflect.ValueOf(controller)
 
 	RoutePathValue := v.Elem().FieldByName("RoutePath")
 	RoutePathValue.SetString(c.RoutePath + strings.Trim(path, "/") + "/")
@@ -314,7 +325,7 @@ func (c *Controller) NewController(controller IController, actionName string) IC
 
 	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
 	ViewSubDirValue.Set(reflect.ValueOf(c.ViewSubDir))
-	return controller
+	return controller*/
 }
 
 func (c *Controller) AddHandler(routePath string, call IHandler) {
@@ -447,67 +458,24 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 
 // NewController 根目录控制器，非具体的handler
 func NewController(rootPath, viewSubDir string) IController {
-
-	path := "/" + strings.Trim(rootPath, "/")
-
-	var routePath string
-
-	if strings.EqualFold(path, "/") == false {
-		/*		h := AppRouter.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
-					c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
-
-					function := &Function{
-						RoutePath:  path,
-						Handler:    &handler{call: controller.DefaultHandle},
-						controller: c.Addr().Interface().(*Controller),
-					}
-
-					function.ServeHTTP(writer, request)
-				})
-				glog.Panic(h.GetError())*/
-		routePath = path + "/"
-	} else {
-		routePath = "/"
-	}
-
-	route := AppRouter.PathPrefix(routePath)
+	path := fmt.Sprintf("/%s/", strings.Trim(rootPath, "/"))
+	route := AppRouter.PathPrefix(path)
 	glog.Panic(route.GetError())
 	router := route.Subrouter()
-
 	controller := &Controller{
-		RoutePath:        routePath,
+		RoutePath:        path,
 		Interceptors:     &Interceptors{},
 		ParentController: nil,
 		Router:           router,
 		ViewSubDir:       strings.Trim(viewSubDir, "/"),
 	}
-
-	//c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
-	function := &Function{
-		Handler:    &handler{call: controller.DefaultHandle},
-		controller: controller,
-	}
-
-	router.NotFoundHandler = &NotFoundHandler{function: function}
-
-	/*v := reflect.ValueOf(controller)
-	RoutePathValue := v.Elem().FieldByName("RoutePath")
-	RoutePathValue.SetString(routePath)
-
-	RouterValue := v.Elem().FieldByName("Router")
-	RouterValue.Set(reflect.ValueOf(router))
-
-	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
-	ViewSubDirValue.Set(reflect.ValueOf(strings.Trim(viewSubDir, "/")))
-	*/
 	return controller
-
 }
-func NewStaticController(rootPath,dir string)  {
-	AppRouter.PathPrefix(fmt.Sprintf("/%s/",rootPath)).HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+func NewStaticController(rootPath, dir string) {
+	AppRouter.PathPrefix(fmt.Sprintf("/%s/", rootPath)).HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Access-Control-Allow-Origin", "*")
-		http.StripPrefix(fmt.Sprintf("/%s/",rootPath), http.FileServer(http.Dir(dir))).ServeHTTP(writer,request)
-	})//.Handler(http.StripPrefix(fmt.Sprintf("/%s/",rootPath), http.FileServer(http.Dir(dir))))
+		http.StripPrefix(fmt.Sprintf("/%s/", rootPath), http.FileServer(http.Dir(dir))).ServeHTTP(writer, request)
+	}) //.Handler(http.StripPrefix(fmt.Sprintf("/%s/",rootPath), http.FileServer(http.Dir(dir))))
 	/*path := "/" + strings.Trim(actionName, "/") + "/"
 	if strings.EqualFold(actionName, "/") || strings.EqualFold(actionName, "") {
 		path = "/"
