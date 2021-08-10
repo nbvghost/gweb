@@ -743,7 +743,7 @@ func (r *RedirectToUrlResult) Apply(context *Context) {
 	//context.Response.Header().Set("Location", r.Url)
 	//context.Response.WriteHeader(http.StatusFound)
 	//context.Response.Header().Set("Content-Type", "")
-	http.Redirect(context.Response, context.Request, r.Url, http.StatusFound)
+	http.Redirect(context.Response, context.Request, fmt.Sprintf("%s/%s", context.Request.URL.Path, r.Url), http.StatusFound)
 }
 
 type ImageResult struct {

@@ -381,7 +381,7 @@ func (c *Controller) AddHandler(routePath string, call IHandler) IController {
 		)
 	}
 
-	h := c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function).Methods(methods...)
+	h := c.Router.Handle("/"+strings.Trim(function.RoutePath, "/"), function).Methods(methods...)
 	glog.Panic(h.GetError())
 	return c
 }
@@ -462,7 +462,15 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 
 // NewController 根目录控制器，非具体的handler
 func NewController(rootPath, viewSubDir string) IController {
-	path := fmt.Sprintf("/%s/", strings.Trim(rootPath, "/"))
+	var path string
+
+	trimPath := strings.Trim(rootPath, "/")
+	if strings.EqualFold(trimPath, "") {
+		path = "/"
+	} else {
+		path = fmt.Sprintf("/%s/", trimPath)
+	}
+
 	route := AppRouter.PathPrefix(path)
 	glog.Panic(route.GetError())
 	router := route.Subrouter()
