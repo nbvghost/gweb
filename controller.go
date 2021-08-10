@@ -51,10 +51,10 @@ func (c *Context) Clone() Context {
 }
 
 type IController interface {
-	DefaultHandle(call IHandler)
-	NotFoundHandler(call IHandler)
-	AddHandler(routePath string, call IHandler)
-	AddInterceptor(value Interceptor)
+	DefaultHandle(call IHandler) IController
+	NotFoundHandler(call IHandler) IController
+	AddHandler(routePath string, call IHandler) IController
+	AddInterceptor(value Interceptor) IController
 	NewController(actionName string) IController
 }
 
@@ -267,22 +267,25 @@ type Controller struct {
 	ViewSubDir       string        //
 }
 
-func (c *Controller) AddInterceptor(value Interceptor) {
+func (c *Controller) AddInterceptor(value Interceptor) IController {
 	c.Interceptors.AddInterceptor(value)
+	return c
 }
 
-func (c *Controller) DefaultHandle(call IHandler) {
+func (c *Controller) DefaultHandle(call IHandler) IController {
 	c.Router.NotFoundHandler = &NotFoundHandler{function: &Function{
 		Handler:    call,
 		controller: c,
 	}}
+	return c
 }
 
-func (c *Controller) NotFoundHandler(call IHandler) {
+func (c *Controller) NotFoundHandler(call IHandler) IController {
 	c.Router.NotFoundHandler = &NotFoundHandler{function: &Function{
 		Handler:    call,
 		controller: c,
 	}}
+	return c
 }
 func (c *Controller) NewController(actionName string) IController {
 	path := fmt.Sprintf("/%s/", strings.Trim(actionName, "/"))
@@ -328,11 +331,11 @@ func (c *Controller) NewController(actionName string) IController {
 	return controller*/
 }
 
-func (c *Controller) AddHandler(routePath string, call IHandler) {
+func (c *Controller) AddHandler(routePath string, call IHandler) IController {
 	function := NewFunction(routePath, call)
 	if strings.EqualFold(function.RoutePath, "") {
 		panic(errors.New("不允许有空的路由"))
-		return
+		return c
 	}
 	function.controller = c
 
@@ -380,6 +383,7 @@ func (c *Controller) AddHandler(routePath string, call IHandler) {
 
 	h := c.Router.Handle("/"+strings.TrimLeft(function.RoutePath, "/"), function).Methods(methods...)
 	glog.Panic(h.GetError())
+	return c
 }
 
 func (c *Controller) AddStaticHandler(function *Function) {
