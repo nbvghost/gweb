@@ -3,9 +3,19 @@ package gweb
 import (
 	"bytes"
 	"log"
+	"net/http"
 	"testing"
 	"text/template"
 )
+
+type testFunc struct {
+}
+
+func (m *testFunc) Call(ctx *Context) IFuncResult {
+
+	return NewMapFuncResult(map[string]interface{}{"tt": 55})
+
+}
 
 func TestRegisterRenderFunction(t *testing.T) {
 	type args struct {
@@ -45,11 +55,12 @@ func TestRegisterRenderFunction(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := RegisterRenderFunction(tt.args.funcName, tt.args.function); (err != nil) != tt.wantErr {
+			if err := RegisterFunction("test", tt.args.funcName, &testFunc{}); (err != nil) != tt.wantErr {
 				t.Errorf("RegisterRenderFunction() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			funcMap := NewFuncMap(&Context{RoutePath: "fdsfdsf"})
+			r, _ := http.NewRequest("GET", "http://a.b.c/test/a/b/c/index", nil)
+			funcMap := NewFuncMap(&Context{RoutePath: "fdsfdsf", Request: r})
 
 			/*argsList := make([]reflect.Value, 0)
 			for _, arg := range tt.args.args {
@@ -59,7 +70,7 @@ func TestRegisterRenderFunction(t *testing.T) {
 			fd := reflect.ValueOf(funcMap[tt.args.funcName]).Call(argsList)
 			log.Println(fd)*/
 
-			templ, err := template.New("dfds").Funcs(template.FuncMap(funcMap)).Parse("@{{$k:=TestFunc}}/{{$k.dsfds}}@")
+			templ, err := template.New("dfds").Funcs(template.FuncMap(funcMap)).Parse("@{{$k:=TestFunc}}/{{$k.tt}}@")
 			log.Println(err)
 			buffer := bytes.NewBuffer([]byte{})
 			log.Println(templ.Execute(buffer, nil))

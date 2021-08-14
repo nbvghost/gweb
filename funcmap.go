@@ -10,7 +10,6 @@ import (
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/tool/object"
 	"html/template"
-	"log"
 	"net/url"
 	"os"
 	"reflect"
@@ -18,6 +17,54 @@ import (
 	"strings"
 	"time"
 )
+
+type IFuncResult interface {
+	Result() interface{}
+}
+
+type fakeFuncResult struct {
+}
+
+func (m *fakeFuncResult) Result() interface{} {
+	return nil
+}
+
+type stringFuncResult struct {
+	args []string
+}
+
+func (m *stringFuncResult) Result() interface{} {
+	l := len(m.args)
+	if l == 0 {
+		return ""
+	} else if l == 1 {
+		return m.args[0]
+	} else {
+		return m.args
+	}
+}
+
+func NewStringFuncResult(args ...string) IFuncResult {
+
+	return &stringFuncResult{args: args}
+}
+
+type mapFuncResult struct {
+	m map[string]interface{}
+}
+
+func (m *mapFuncResult) Result() interface{} {
+	return m.m
+}
+
+func NewMapFuncResult(m map[string]interface{}) IFuncResult {
+
+	return &mapFuncResult{m: m}
+}
+
+type IFunc interface {
+	Call(ctx *Context) IFuncResult
+}
 
 /*var FunctionMap = template.FuncMap{
 	"IncludeHTML":     includeHTML,
@@ -45,36 +92,30 @@ import (
 	return FunctionMap
 }*/
 
-var regFuncMap = make(map[string]interface{})
+var regMap = make(map[string]map[string]interface{})
 
-func RegisterRenderFunction(funcName string, function interface{}) error {
+func RegisterFunction(group string, funcName string, function IFunc) error {
 
-	if _, ok := regFuncMap[funcName]; ok {
+	if _, ok := regMap[group]; !ok {
+		regMap[group] = make(map[string]interface{})
+	}
+	if _, ok := regMap[group][funcName]; ok {
 		return errors.New(fmt.Sprintf("%v函数已经存在", funcName))
 	}
 
-	v := reflect.ValueOf(function)
-	if v.Kind() != reflect.Func || v.Kind() == reflect.Ptr {
-		return errors.New("function 必需是函数")
+	regMap[group][funcName] = function
+
+	return nil
+}
+func RegisterWidget(group string, funcName string, widget IWidget) error {
+	if _, ok := regMap[group]; !ok {
+		regMap[group] = make(map[string]interface{})
+	}
+	if _, ok := regMap[group][funcName]; ok {
+		return errors.New(fmt.Sprintf("%v函数已经存在", funcName))
 	}
 
-	functionType := v.Type()
-
-	functionNumIn := functionType.NumIn()
-	if functionNumIn < 1 {
-		return errors.New("function 参数个数必须1个或以上")
-	}
-
-	if strings.Contains(functionType.In(0).String(), "gweb.Context") == false {
-		return errors.New("function 第一个参数必须是gweb.Context")
-	}
-
-	functionNumOut := functionType.NumOut()
-	if functionNumOut != 1 {
-		return errors.New("function 要有一个返回值")
-	}
-
-	regFuncMap[funcName] = function
+	regMap[group][funcName] = widget
 
 	return nil
 }
@@ -106,42 +147,55 @@ func NewFuncMap(context *Context) template.FuncMap {
 	fm.funcMap["DigitMod"] = fm.digitMod
 	fm.funcMap["Test"] = fm.test
 
-	for funcName := range regFuncMap {
+	groups := strings.Split(context.Request.URL.Path, "/")
+	if len(groups) < 3 {
+		return fm.funcMap
+	}
+
+	group := groups[1]
+
+	for funcName := range regMap[group] {
 
 		func(funcName string) {
-			function := regFuncMap[funcName]
+			function := regMap[group][funcName]
 
-			v := reflect.ValueOf(function)
+			v := reflect.ValueOf(function).Elem()
 			functionType := v.Type()
 
-			functionNumIn := functionType.NumIn()
-			functionNumOut := functionType.NumOut()
-			//---
 			argsIn := make([]reflect.Type, 0)
-			for i := 1; i < functionNumIn; i++ {
-				argsIn = append(argsIn, functionType.In(i))
-			}
-			argsOut := make([]reflect.Type, 0)
-			for i := 0; i < functionNumOut; i++ {
-				argsOut = append(argsOut, functionType.Out(i))
+
+			argsIndex := make([]int, 0)
+
+			numField := functionType.NumField()
+			for i := 0; i < numField; i++ {
+				if _, ok := functionType.Field(i).Tag.Lookup("arg"); ok {
+					argsIn = append(argsIn, functionType.Field(i).Type)
+					argsIndex = append(argsIndex, i)
+				}
 			}
 
-			//reflect.FuncOf(args)
-
-			makeFuncType := reflect.FuncOf(argsIn, argsOut, false)
+			var makeFuncType reflect.Type
+			switch function.(type) {
+			case IFunc:
+				makeFuncType = reflect.FuncOf(argsIn, []reflect.Type{reflect.TypeOf(new(interface{})).Elem()}, false)
+			case IWidget:
+				makeFuncType = reflect.FuncOf(argsIn, []reflect.Type{reflect.TypeOf(new(template.HTML)).Elem()}, false)
+			}
 
 			backCallFunc := reflect.MakeFunc(makeFuncType, func(args []reflect.Value) (results []reflect.Value) {
-				backCallFuncArgs := make([]reflect.Value, 0)
-				backCallFuncArgs = append(backCallFuncArgs, reflect.ValueOf(fm.c))
-				backCallFuncArgs = append(backCallFuncArgs, args...)
+				for i := 0; i < len(args); i++ {
+					v.Field(argsIndex[i]).Set(args[i])
+				}
 
-				resultArgs := v.Call(backCallFuncArgs)
+				var result interface{}
+				switch function.(type) {
+				case IWidget:
+					result = function.(IWidget).Render(fm.c)
+				case IFunc:
+					result = function.(IFunc).Call(fm.c).Result()
+				}
 
-				v := resultArgs[0]
-				log.Println(v)
-				log.Println("out", reflect.ValueOf(map[string]interface{}{"dfds": 154}).Interface())
-				log.Println("out", reflect.Indirect(reflect.ValueOf(map[string]interface{}{"dfds": 154})).Interface())
-				return []reflect.Value{v}
+				return []reflect.Value{reflect.ValueOf(result)}
 			})
 			fm.funcMap[funcName] = backCallFunc.Interface()
 		}(funcName)
