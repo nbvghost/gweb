@@ -10,8 +10,11 @@ import (
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/tool/object"
 	"html/template"
+	"io/ioutil"
+	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -30,23 +33,16 @@ func (m *fakeFuncResult) Result() interface{} {
 }
 
 type stringFuncResult struct {
-	args []string
+	arg string
 }
 
 func (m *stringFuncResult) Result() interface{} {
-	l := len(m.args)
-	if l == 0 {
-		return ""
-	} else if l == 1 {
-		return m.args[0]
-	} else {
-		return m.args
-	}
+	return m.arg
 }
 
-func NewStringFuncResult(args ...string) IFuncResult {
+func NewStringFuncResult(arg string) IFuncResult {
 
-	return &stringFuncResult{args: args}
+	return &stringFuncResult{arg: arg}
 }
 
 type mapFuncResult struct {
@@ -60,6 +56,22 @@ func (m *mapFuncResult) Result() interface{} {
 func NewMapFuncResult(m map[string]interface{}) IFuncResult {
 
 	return &mapFuncResult{m: m}
+}
+
+type stringArrayFuncResult struct {
+	args []string
+}
+
+func (m *stringArrayFuncResult) Result() interface{} {
+	if len(m.args) == 0 {
+		return []string{}
+	}
+	return m.args
+}
+
+func NewStringArrayFuncResult(args []string) IFuncResult {
+
+	return &stringArrayFuncResult{args: args}
 }
 
 type IFunc interface {
@@ -94,30 +106,28 @@ type IFunc interface {
 
 var regMap = make(map[string]map[string]interface{})
 
-func RegisterFunction(group string, funcName string, function IFunc) error {
+func RegisterFunction(group string, funcName string, function IFunc) {
 
 	if _, ok := regMap[group]; !ok {
 		regMap[group] = make(map[string]interface{})
 	}
 	if _, ok := regMap[group][funcName]; ok {
-		return errors.New(fmt.Sprintf("%v函数已经存在", funcName))
+		log.Fatalln(errors.New(fmt.Sprintf("%v函数已经存在", funcName)))
 	}
 
 	regMap[group][funcName] = function
 
-	return nil
 }
-func RegisterWidget(group string, funcName string, widget IWidget) error {
+func RegisterWidget(group string, funcName string, widget IWidget) {
 	if _, ok := regMap[group]; !ok {
 		regMap[group] = make(map[string]interface{})
 	}
 	if _, ok := regMap[group][funcName]; ok {
-		return errors.New(fmt.Sprintf("%v函数已经存在", funcName))
+		log.Fatalln(errors.New(fmt.Sprintf("%v函数已经存在", funcName)))
 	}
 
 	regMap[group][funcName] = widget
 
-	return nil
 }
 
 type FuncObject struct {
@@ -157,6 +167,7 @@ func NewFuncMap(context *Context) template.FuncMap {
 	for funcName := range regMap[group] {
 
 		func(funcName string) {
+			//闭包
 			function := regMap[group][funcName]
 
 			v := reflect.ValueOf(function).Elem()
@@ -188,9 +199,34 @@ func NewFuncMap(context *Context) template.FuncMap {
 				}
 
 				var result interface{}
+
 				switch function.(type) {
 				case IWidget:
-					result = function.(IWidget).Render(fm.c)
+					resultData, err := function.(IWidget).Render(fm.c)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+					fileName := filepath.Join(conf.Config.ViewDir, group, "template", "widget", fmt.Sprintf("%s.%s", funcName, "gohtml"))
+					b, err := ioutil.ReadFile(fileName)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+					t, err := template.New(funcName).Funcs(NewFuncMap(fm.c)).Parse(string(b))
+					log.Println("---------", funcName, fm.c.Request.URL.Path)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+					buffer := bytes.NewBuffer(nil)
+					if err := t.Execute(buffer, resultData); err != nil {
+						log.Println(err)
+						return
+					}
+
+					result = template.HTML(buffer.Bytes())
+
 				case IFunc:
 					result = function.(IFunc).Call(fm.c).Result()
 				}
