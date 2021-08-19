@@ -1,3 +1,5 @@
+github.com/golang/go v0.0.0-20210817025008-29ec74fb8232 h1:Li6D0H0JNnVqOZqfMhVc9B9kaVNjsQbitFDGT6diheQ=
+github.com/golang/go v0.0.0-20210817025008-29ec74fb8232/go.mod h1:VnTjtYw+XLkxokOYpCb9NBW3cOTFO8+uqxF7o10XJQk=
 github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
 github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
 github.com/nbvghost/glog v1.0.15 h1:EVrgNRngWQ6/QdpJ9kb6soyU5j2nYImHuVY4YqQ5QU8=
