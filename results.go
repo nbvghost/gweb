@@ -1,13 +1,17 @@
 package gweb
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nbvghost/gweb/thread"
-	"github.com/nbvghost/gweb/tool/encryption"
+	"github.com/nbvghost/gweb/cache"
+
+	"github.com/nbvghost/tool/encryption"
+
 	"html/template"
 	"net/http/httptest"
 
+	"github.com/nbvghost/glog"
 	"io"
 	"io/ioutil"
 	"log"
@@ -19,147 +23,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
-
-	"github.com/nbvghost/glog"
 
 	"time"
 
 	"github.com/nbvghost/gweb/conf"
-	"github.com/nbvghost/gweb/tool"
 )
-
-var CacheMaxFileSize int64 = 1024 * 1024 //
-var CacheFileTimeout int64 = 60 * 3      //秒
-
-type CacheFileItem struct {
-	Info         os.FileInfo
-	LastReadTime time.Time
-	Byte         []byte
-}
-type CacheFileByte struct {
-	m map[string]*CacheFileItem
-	sync.RWMutex
-}
-
-func (c *CacheFileByte) readFile(path string) (*CacheFileItem, error) {
-
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	defer file.Close()
-
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-	if fileInfo.IsDir() {
-		return nil, errors.New("目标路径是一个文件夹：" + path)
-	}
-
-	fileByte, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	if fileInfo.Size() > CacheMaxFileSize {
-
-		return &CacheFileItem{Info: fileInfo, LastReadTime: time.Now(), Byte: fileByte}, nil
-
-	}
-
-	item := &CacheFileItem{}
-	item.Info = fileInfo
-	item.LastReadTime = time.Now()
-
-	item.Byte = fileByte
-
-	c.Lock()
-	defer c.Unlock()
-	if c.m == nil {
-		c.m = make(map[string]*CacheFileItem)
-	}
-	c.m[path] = item
-	return item, nil
-}
-func (c *CacheFileByte) RemoveTimeout(path string) {
-
-	cache := c.get(path)
-	if cache != nil {
-
-		if time.Now().Unix()-cache.LastReadTime.Unix() > CacheFileTimeout {
-
-			c.Lock()
-			defer c.Unlock()
-			delete(c.m, path)
-
-		}
-
-	}
-
-}
-func (c *CacheFileByte) Read(path string) (*CacheFileItem, error) {
-
-	cache := c.get(path)
-	if cache == nil {
-		var err error
-		cache, err = c.readFile(path)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-
-		fileInfo, err := os.Stat(path)
-		if err != nil {
-			return nil, err
-		}
-		if cache.Info.Size() != fileInfo.Size() || fileInfo.ModTime().Unix() != cache.Info.ModTime().Unix() {
-			_cache, _err := c.readFile(path)
-			if _err != nil {
-				return nil, _err
-			} else {
-				cache = _cache
-			}
-		}
-
-	}
-
-	return cache, nil
-}
-
-func (c *CacheFileByte) get(path string) *CacheFileItem {
-
-	c.RLock()
-	defer c.RUnlock()
-	return c.m[path]
-
-}
-
-var cache = &CacheFileByte{}
-
-func init() {
-
-	thread.NewCoroutine(func(option *thread.Option) {
-		for {
-
-			for path := range cache.m {
-
-				cache.RemoveTimeout(path)
-
-			}
-
-			time.Sleep(time.Second * 3)
-		}
-
-	}, func(option *thread.Option) {
-
-		glog.Trace("检测缓存文件协程，意外重启")
-
-	}, &thread.Option{ReRun: true})
-
-}
 
 var _ Result = (*ErrorResult)(nil)
 var _ Result = (*SingleHostReverseProxyResult)(nil)
@@ -167,7 +35,7 @@ var _ Result = (*SingleHostForwardProxyResult)(nil)
 var _ Result = (*ViewActionMappingResult)(nil)
 var _ Result = (*ViewResult)(nil)
 var _ Result = (*EmptyResult)(nil)
-var _ Result = (*CacheHTMLResult)(nil)
+var _ Result = (*cacheHTMLResult)(nil)
 var _ Result = (*HTMLResult)(nil)
 var _ Result = (*JsonResult)(nil)
 var _ Result = (*FileServerResult)(nil)
@@ -482,9 +350,16 @@ x-world/x-vrml	xof
 type ViewActionMappingResult struct {
 }
 
+var fileNameRegexp = regexp.MustCompile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
+
 func (r *ViewActionMappingResult) Apply(context *Context) {
 
 	path := context.Request.URL.Path
+
+	viewSubDir := context.Function.controller.ViewSubDir
+	if strings.EqualFold(viewSubDir, "") == false {
+		viewSubDir = viewSubDir + "/"
+	}
 
 	if strings.EqualFold(path, "/") {
 		if strings.EqualFold(conf.Config.DefaultPage, "") == false {
@@ -498,20 +373,20 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 
 	path = strings.TrimRight(path, "/")
 	//b, err := ioutil.ReadFile(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
-	b, err := cache.Read(conf.Config.ViewDir + path + conf.Config.ViewSuffix)
+	b, err := cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + "/" + path + conf.Config.ViewSuffix))
 	if err != nil {
 		//不存在
 		//fmt.Println(context.Request.Header)
 
 		var haveMIME = false
 		//b, err := ioutil.ReadFile(conf.Config.ViewDir + path)
-		b, err := cache.Read(conf.Config.ViewDir + path)
+		b, err := cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + "/" + path))
 		if err == nil {
-			re, err := regexp.Compile("\\/([0-9a-zA-Z_]+)\\.([0-9a-zA-Z]+)$")
+
 			glog.Error(err)
 
-			if re.MatchString(path) {
-				Groups := re.FindAllStringSubmatch(path, -1)
+			if fileNameRegexp.MatchString(path) {
+				Groups := fileNameRegexp.FindAllStringSubmatch(path, -1)
 				//[[/fgsd_gffdgdf.txt fgsd_gffdgdf txt]]
 				//{"ContentType": "text/html","Extension":"html"}
 				Extension := Groups[0][2]
@@ -550,12 +425,12 @@ func (r *ViewActionMappingResult) Apply(context *Context) {
 	} else {
 		context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 		context.Response.WriteHeader(http.StatusOK)
-		t, err := template.New("default").Funcs(tool.FuncMap()).Parse(string(b.Byte))
+		t, err := template.New("default").Funcs(NewFuncMap(context)).Parse(string(b.Byte))
 		glog.Error(err)
 
 		data := make(map[string]interface{})
 		data["session"] = context.Session.Attributes.GetMap()
-		data["query"] = tool.QueryParams(context.Request.URL.Query())
+		data["query"] = QueryParams(context.Request.URL.Query())
 
 		glog.Error(t.Execute(context.Response, data))
 	}
@@ -601,14 +476,14 @@ func (r *EmptyResult) Apply(context *Context) {
 }
 
 //只映射已经定义的后缀模板文件，并生成html缓存文件
-type CacheHTMLResult struct {
-	HTMLResult
-	OID uint64
+type cacheHTMLResult struct {
+	*HTMLResult
+	ServiceName string
 }
 
-func (r *CacheHTMLResult) Apply(context *Context) {
-	if r.OID == 0 {
-		NewErrorResult(errors.New("CacheHTMLResult 结果，必须指定OID值")).Apply(context)
+func (r *cacheHTMLResult) Apply(context *Context) {
+	if r.ServiceName == "" {
+		NewErrorResult(errors.New("CacheHTMLResult 结果，必须指定ServiceName值")).Apply(context)
 		return
 	}
 	responseRecorder := httptest.NewRecorder()
@@ -635,22 +510,23 @@ func (r *CacheHTMLResult) Apply(context *Context) {
 
 	fullPathMd5 := encryption.Md5ByString(fullPath)
 
-	cacheDir := fmt.Sprintf("cache/%v", r.OID)
+	cacheDir := fmt.Sprintf("cache/%v", r.ServiceName)
 	cacheFile := cacheDir + "/" + fullPathMd5
 
-	if tool.IsFileExist(cacheDir) == false {
-		glog.Error(os.Mkdir(cacheDir, os.ModePerm))
+	if IsFileExist(cacheDir) == false {
+		glog.Error(os.MkdirAll(cacheDir, os.ModePerm))
 	}
 
-	rp := regexp.MustCompile(`\s{2,}`)
-	dataByte = rp.ReplaceAll(dataByte, []byte(" "))
+	dataByte = emptyTextRegexp.ReplaceAll(dataByte, []byte(" "))
 
-	rp = regexp.MustCompile(`[\r\n]`)
-	dataByte = rp.ReplaceAll(dataByte, []byte{})
+	dataByte = wrapTextRegexp.ReplaceAll(dataByte, []byte{})
 
 	glog.Error(ioutil.WriteFile(cacheFile, dataByte, os.ModePerm))
 	context.Response.Write(dataByte)
 }
+
+var emptyTextRegexp = regexp.MustCompile(`\s{2,}`)
+var wrapTextRegexp = regexp.MustCompile(`[\r\n]`)
 
 //只映射已经定义的后缀模板文件
 type HTMLResult struct {
@@ -661,25 +537,29 @@ type HTMLResult struct {
 }
 
 func (r *HTMLResult) Apply(context *Context) {
-
 	path, filename := filepath.Split(context.Request.URL.Path)
 
-	var b *CacheFileItem
+	var b *cache.CacheFileItem
 	var err error
+
+	viewSubDir := context.Function.controller.ViewSubDir
+	if strings.EqualFold(viewSubDir, "") == false {
+		viewSubDir = viewSubDir + "/"
+	}
 
 	if strings.EqualFold(r.Name, "") {
 		//html 只处理，已经定义后缀名的文件
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + filename + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + path + "/" + filename + conf.Config.ViewSuffix))
 	} else {
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + r.Name + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + context.RootPath + "/" + r.Name + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + context.RoutePath + "/" + r.Name + conf.Config.ViewSuffix))
 	}
 	if err != nil {
 		//判断是否有默认页面
 		//fmt.Println(fixPath(Config.ViewDir + "/" + path +"/"+ Config.DefaultPage))
 		//b, err = ioutil.ReadFile(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
-		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
+		b, err = cache.Read(fixPath(conf.Config.ViewDir + "/" + viewSubDir + path + "/" + conf.Config.DefaultPage + conf.Config.ViewSuffix))
 		if err != nil {
 			(&ViewActionMappingResult{}).Apply(context)
 			return
@@ -687,7 +567,7 @@ func (r *HTMLResult) Apply(context *Context) {
 	}
 
 	//t, err := template.New("default").Funcs(FuncMap).Parse(string(b))
-	t := template.New("HTMLResult").Funcs(tool.FuncMap())
+	t := template.New("HTMLResult").Funcs(NewFuncMap(context))
 
 	for index := range r.Template {
 
@@ -695,9 +575,9 @@ func (r *HTMLResult) Apply(context *Context) {
 		var err error
 		var tt *template.Template
 		if strings.Contains(tpath, "*") {
-			tt, err = t.ParseGlob(conf.Config.ViewDir + "/" + tpath)
+			tt, err = t.ParseGlob(conf.Config.ViewDir + "/" + viewSubDir + tpath)
 		} else {
-			tt, err = t.ParseFiles(conf.Config.ViewDir + "/" + tpath)
+			tt, err = t.ParseFiles(conf.Config.ViewDir + "/" + viewSubDir + tpath)
 		}
 
 		if err != nil {
@@ -725,17 +605,14 @@ func (r *HTMLResult) Apply(context *Context) {
 func createPageParams(context *Context, Params map[string]interface{}) map[string]interface{} {
 	data := make(map[string]interface{})
 	data["session"] = context.Session.Attributes.GetMap()
-	data["query"] = tool.QueryParams(context.Request.URL.Query())
+	data["query"] = QueryParams(context.Request.URL.Query())
 	data["params"] = Params
 	data["debug"] = conf.Config.Debug
 	data["host"] = context.Request.Host
 	data["time"] = time.Now().Unix() * 1000
-	data["rootPath"] = context.RootPath
+	data["rootPath"] = context.RoutePath
 
-	jsonData := make(map[string]interface{})
-	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
-
-	data["data"] = jsonData
+	data["data"] = conf.JsonData.Copy()
 
 	return data
 	//context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -745,7 +622,7 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 
 type JsonResult struct {
 	Data interface{}
-	sync.RWMutex
+	///sync.RWMutex
 }
 
 /*func (r *JsonResult)encodeJson() (error,[]byte)  {
@@ -761,7 +638,7 @@ func (r *JsonResult) Apply(context *Context) {
 	var b []byte
 	var err error
 
-	b, err = tool.JsonMarshal(r.Data)
+	b, err = json.Marshal(r.Data)
 	if err != nil {
 		(&ErrorResult{Error: err}).Apply(context)
 		return
@@ -777,12 +654,27 @@ func (r *JsonResult) Apply(context *Context) {
 }
 
 type FileServerResult struct {
-	Dir http.Dir
+	Prefix string
+	Dir    string
 }
 
+// http.StripPrefix
 func (fs *FileServerResult) Apply(context *Context) {
+	//dir, _ := filepath.Split(context.Request.URL.Path)
+	//log.Println(dir, fileName)
+	//http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(conf.Config.ResourcesDir, http.FileServer(http.Dir(fs.Dir))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(dir))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(context.Request.URL.Path))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(dir, http.FileServer(http.Dir("resources"))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix(dir, http.FileServer(fs.Dir+"/"+http.Dir(dir))).ServeHTTP(context.Response, context.Request)
 
-	http.FileServer(http.Dir(conf.Config.ViewDir)+"/"+fs.Dir).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix("/resources/", http.FileServer(http.Dir(conf.Config.ResourcesDir+"/resources"))).ServeHTTP(context.Response, context.Request)
+	//http.StripPrefix("/web/", http.FileServer(http.Dir(conf.Config.ViewDir+"/web/"))).ServeHTTP(context.Response, context.Request)
+
+	//http.StripPrefix(fs.StripPrefix, http.FileServer(http.Dir(fs.Dir+fs.StripPrefix))).ServeHTTP(context.Response, context.Request)
+
+	http.StripPrefix(fs.Prefix, http.FileServer(http.Dir(fs.Dir))).ServeHTTP(context.Response, context.Request)
 
 }
 
@@ -793,7 +685,7 @@ type HtmlPlainResult struct {
 
 func (r *HtmlPlainResult) Apply(context *Context) {
 
-	t := template.New("HtmlPlainResult").Funcs(tool.FuncMap())
+	t := template.New("HtmlPlainResult").Funcs(NewFuncMap(context))
 	t, err := t.Parse(r.Data)
 	//template.Must(t.Parse(string(b)))
 	if err != nil {
@@ -852,7 +744,7 @@ func (r *RedirectToUrlResult) Apply(context *Context) {
 	//context.Response.Header().Set("Location", r.Url)
 	//context.Response.WriteHeader(http.StatusFound)
 	//context.Response.Header().Set("Content-Type", "")
-	http.Redirect(context.Response, context.Request, r.Url, http.StatusFound)
+	http.Redirect(context.Response, context.Request, fmt.Sprintf("%s/%s", context.Request.URL.Path, r.Url), http.StatusFound)
 }
 
 type ImageResult struct {

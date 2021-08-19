@@ -2,31 +2,41 @@ package gweb
 
 import (
 	"errors"
+	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/nbvghost/glog"
+	"github.com/nbvghost/gweb/cache"
 	"github.com/nbvghost/gweb/conf"
-	"github.com/nbvghost/gweb/tool/encryption"
-	"io/ioutil"
-	"net/http"
-	"path/filepath"
-	"reflect"
-	"regexp"
-	"sort"
-	"strings"
-	"sync"
-
-	"github.com/nbvghost/gweb/tool"
-
+	"github.com/nbvghost/tool/encryption"
 	"runtime/debug"
 	"time"
+
+	"net/http"
+	"regexp"
+	"strings"
 )
 
+var removeSeparatorRegexp = regexp.MustCompile("/+")
+
+func fixPath(path string) string {
+	return removeSeparatorRegexp.ReplaceAllString(path, "/")
+}
+
+type handler struct {
+	call func(context *Context) Result
+}
+
+func (h *handler) Handle(context *Context) Result {
+	return h.call(context)
+}
+
 type Context struct {
-	Response   http.ResponseWriter
-	Request    *http.Request
-	Session    *Session
-	PathParams map[string]string
-	RootPath   string //解析后的路径
-	Data       map[string]interface{}
+	Response   http.ResponseWriter //
+	Request    *http.Request       //
+	Session    *Session            //
+	PathParams map[string]string   //
+	RoutePath  string              //route 的路径，相当于router根目录,请求request path remove restful path
+	Function   *Function           //
 }
 
 func (c *Context) Clone() Context {
@@ -35,523 +45,97 @@ func (c *Context) Clone() Context {
 		Request:    c.Request,
 		Session:    c.Session,
 		PathParams: c.PathParams,
-		RootPath:   c.RootPath,
-		Data:       c.Data,
+		RoutePath:  c.RoutePath,
+		//Data:       c.Data,
 	}
 }
 
-type function struct {
-	Method    string
-	RoutePath string
-	Function  func(context *Context) Result
-}
-
-func GETMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodGet
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func OPTMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodOptions
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func HEAMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodHead
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func POSMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodPost
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func PUTMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodPut
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func DELMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodDelete
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func TRAMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodTrace
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func CONMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = http.MethodConnect
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-func ALLMethod(RoutePath string, call func(context *Context) Result) function {
-	var _function function
-	_function.Method = "ALL"
-	_function.RoutePath = RoutePath
-	_function.Function = call
-	return _function
-}
-
-/*"OPTIONS"                ; Section 9.2
-| "GET"                    ; Section 9.3
-| "HEAD"                   ; Section 9.4
-| "POST"                   ; Section 9.5
-| "PUT"                    ; Section 9.6
-| "DELETE"                 ; Section 9.7
-| "TRACE"                  ; Section 9.8
-| "CONNECT"                ; Section 9.9*/
 type IController interface {
-	Init()
-	ServeHTTP(w http.ResponseWriter, r *http.Request, rootPath string)
-	addRequestMapping(key string, f *function) *ListMapping
+	DefaultHandle(call IHandler) IController
+	NotFoundHandler(call IHandler) IController
+	AddHandler(routePath string, call IHandler) IController
+	AddInterceptor(value Interceptor) IController
+	NewController(actionName string) IController
 }
 
-/*type ISubController interface {
-	Apply(parant *BaseSubController)
+/*
+MethodGet     = "GET"
+MethodHead    = "HEAD"
+MethodPost    = "POST"
+MethodPut     = "PUT"
+MethodPatch   = "PATCH" // RFC 5789
+MethodDelete  = "DELETE"
+MethodConnect = "CONNECT"
+MethodOptions = "OPTIONS"
+MethodTrace   = "TRACE"
+*/
+
+type IHandlerGet interface {
+	IHandler
+	HandleGet(context *Context) Result
 }
-type BaseSubController struct {
-	sync.RWMutex
-	Base    *BaseController
-	SubPath string
-}*/
-type ListMapping struct {
-	_list []*Mapping
-	sync.RWMutex
+type IHandlerPost interface {
+	IHandler
+	HandlePost(context *Context) Result
 }
-type Mapping struct {
-	Key string
-	F   *function
+type IHandlerHead interface {
+	IHandler
+	HandleHead(context *Context) Result
 }
-
-func (lm *ListMapping) Range(call func(index int, e *Mapping) bool) {
-
-	if lm == nil {
-		return
-	}
-
-	for index := range lm._list {
-
-		co := call(index, lm._list[index])
-		if co == false {
-			break
-		}
-
-	}
-
+type IHandlerPut interface {
+	IHandler
+	HandlePut(context *Context) Result
 }
-func (lm *ListMapping) GetByKey(Key string) *Mapping {
-	if lm == nil {
-		return nil
-	}
-	for index, value := range lm._list {
-		if strings.EqualFold(value.Key, Key) {
-			return lm._list[index]
-		}
-	}
-	return nil
-
+type IHandlerPatch interface {
+	IHandler
+	HandlePatch(context *Context) Result
 }
-func (lm *ListMapping) Add(e *Mapping) {
-	lm.Lock()
-	defer lm.Unlock()
-	if has := lm.GetByKey(e.Key); has != nil {
-		panic(errors.New("不允许添加相同的路由:" + has.Key))
-	}
-
-	if lm._list == nil {
-		lm._list = make([]*Mapping, 0)
-	}
-
-	lm._list = append(lm._list, e)
-
-	sort.SliceStable(lm._list, func(i, j int) bool {
-		e := lm._list[i]
-		_e := lm._list[j]
-
-		eRs := strings.Split(e.Key, "/")
-		_eRs := strings.Split(_e.Key, "/")
-
-		if len(eRs) > len(_eRs) {
-
-			return true
-		} else {
-			return false
-		}
-	})
+type IHandlerDelete interface {
+	IHandler
+	HandleDelete(context *Context) Result
+}
+type IHandlerConnect interface {
+	IHandler
+	HandleConnect(context *Context) Result
+}
+type IHandlerOptions interface {
+	IHandler
+	HandleOptions(context *Context) Result
+}
+type IHandlerTrace interface {
+	IHandler
+	HandleTrace(context *Context) Result
+}
+type IHandler interface {
+	Handle(context *Context) Result
 }
 
-var controllerMap = make(map[string]interface{})
-
-type BaseController struct {
-	//Context          *Context
-	RequestMapping   *ListMapping //map[string]*function
-	RoutePath        string       //定义路由的路径
-	Interceptors     Interceptors
-	ParentController *BaseController
-	//sync.RWMutex
+type NotFoundHandler struct {
+	function *Function
 }
 
-func (c *BaseController) Init() {
-
+func (h *NotFoundHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if h.function.controller.RoutePath != "/" {
+		h.function.RoutePath = "/" + strings.ReplaceAll(request.URL.Path, h.function.controller.RoutePath, "")
+	}
+	h.function.ServeHTTP(writer, request)
 }
 
-func (c *BaseController) addRequestMapping(key string, f *function) *ListMapping {
-	//c.Lock()
-	//defer c.Unlock()
-	//c.RequestMapping[key] =f
-	if c.RequestMapping == nil {
-		c.RequestMapping = &ListMapping{}
-	}
-	c.RequestMapping.Add(&Mapping{Key: key, F: f})
-	return c.RequestMapping
+type Function struct {
+	RoutePath  string
+	Handler    IHandler
+	controller *Controller
 }
 
-/*func (c *BaseSubController) AddHandler(pattern string, function *Function) {
-	c.Base.AddHandler("/"+c.SubPath+"/"+pattern, function)
-}*/
-
-func (c *BaseController) NewController(path string, controller IController) {
-
-	if strings.Contains(path, "//") {
-		panic(errors.New("重复的//"))
-		return
-	}
-
-	if strings.EqualFold(path, "/") || strings.EqualFold(path, "") {
-		path = "/"
-	} else {
-		path = "/" + strings.Trim(path, "/") + "/"
-	}
-	c.RoutePath = path
-	//path = fixPath(path)
-	/*if !strings.EqualFold(path[len(path)-1:], "/") {
-
-		path = path + "/"
-
-	}*/
-	if validateRoutePath(path) == false {
-		return
-	}
-	controller.Init()
-	//http.Handle(path, c)
-
-	pathList := strings.Split(strings.Trim(path, "/"), "/")
-
-	var lastItem map[string]interface{} = controllerMap
-	for index := range pathList {
-
-		if _, ok := lastItem[pathList[index]]; !ok {
-
-			if index == len(pathList)-1 {
-				//最后一项
-				lastItem[pathList[index]] = map[string]interface{}{"": controller}
-			} else {
-				lastItem[pathList[index]] = make(map[string]interface{})
-				lastItem = lastItem[pathList[index]].(map[string]interface{})
-			}
-
-		} else {
-			if index == len(pathList)-1 {
-				lastItem[pathList[index]].(map[string]interface{})[""] = controller
-				//panic(errors.New("重复的路由："+pathList[index]))
-
-			} else {
-				lastItem = lastItem[pathList[index]].(map[string]interface{})
-			}
-		}
-
-	}
-
-}
-func (c *BaseController) AddSubController(path string, isubc IController) {
-	//subbc := &BaseController{}
-	//subbc.Base = c
-	//subbc.SubPath = path
-
-	if strings.EqualFold(path, "/") || strings.EqualFold(path, "") {
-		panic(errors.New("路由地址为*或空，请使用ALLMethod方法，创建function"))
-		//panic(errors.New("不允许有空的路由"))
-		return
-	} else {
-		path = strings.Trim(path, "/") + "/"
-	}
-
-	if strings.EqualFold(c.RoutePath, "/") {
-		path = c.RoutePath + path
-	} else {
-		path = c.RoutePath + path
-	}
-
-	/*path = fixPath(c.Root + "/" + path)
-	if !strings.EqualFold(path[len(path)-1:], "/") {
-		path = path + "/"
-	}*/
-
-	value := reflect.Indirect(reflect.ValueOf(isubc))
-	//fmt.Println(value.Interface())
-
-	RootField := value.FieldByName("RoutePath")
-
-	//fmt.Println(RootField)
-	//fmt.Println("----")
-	if RootField.Kind() == reflect.String {
-		if RootField.CanSet() {
-			RootField.SetString(path)
-		}
-	}
-	//fmt.Println(isubc)
-	//fmt.Println("----")
-	if validateRoutePath(path) == false {
-		return
-	}
-
-	isubc.Init()
-
-	key := "Get," + path
-
-	//log.Println(key)
-
-	/*if c.RequestMapping[key] != nil {
-		glog.Trace(key, "已经存在，将被替换成新的方法")
-	}*/
-	var _function function
-	_function.Method = "Get"
-	_function.RoutePath = path
-	_function.Function = func(context *Context) Result {
-
-		return &ViewActionMappingResult{}
-	}
-
-	//c.RequestMapping[key] = &_function
-	subMapping := isubc.addRequestMapping(key, &_function)
-	subMapping.Range(func(index int, e *Mapping) bool {
-
-		//isubc.addRequestMapping(e.Key, e.F)
-		return true
-	})
-
-	//http.Handle(path, isubc)
-
-	pathList := strings.Split(strings.TrimLeft(strings.TrimRight(path, "/"), "/"), "/")
-
-	var lastItem map[string]interface{} = controllerMap
-	for index := range pathList {
-
-		if _, ok := lastItem[pathList[index]]; !ok {
-
-			if index == len(pathList)-1 {
-				//最后一项
-				lastItem[pathList[index]] = map[string]interface{}{"": isubc}
-			} else {
-				lastItem[pathList[index]] = make(map[string]interface{})
-				lastItem = lastItem[pathList[index]].(map[string]interface{})
-			}
-
-		} else {
-			if index == len(pathList)-1 {
-				//panic(errors.New("重复的路由"))
-				lastItem[pathList[index]].(map[string]interface{})[""] = isubc
-			} else {
-				lastItem = lastItem[pathList[index]].(map[string]interface{})
-			}
-		}
-
-	}
-
-}
-
-///func(context *Context) Result
-func (c *BaseController) AddHandler(_function function) {
-	if strings.EqualFold(_function.RoutePath, "") {
-		panic(errors.New("不允许有空的路由"))
-		return
-	}
-
-	/*c.Lock()
-	defer c.Unlock()
-	if c.RequestMapping == nil {
-		c.RequestMapping = make(map[string]*function)
-	}*/
-
-	if strings.EqualFold(_function.RoutePath, "*") || strings.EqualFold(_function.RoutePath, "") {
-		if !strings.EqualFold(_function.Method, "ALL") {
-			//panic("路由地址为*或空，请使用ALLMethod方法，创建function")
-
-		}
-		panic(errors.New("路由地址为*或空，请使用ALLMethod方法，创建function"))
-		//panic(errors.New("不允许有空的路由"))
-		return
-	}
-
-	var _pattern = ""
-
-	//_function.RoutePath = strings.Trim(_function.RoutePath,"/")
-	_function.RoutePath = strings.TrimLeft(_function.RoutePath, "/")
-
-	_pattern = c.RoutePath + _function.RoutePath
-
-	if validateRoutePath(_pattern) == false {
-		return
-	}
-	key := _function.Method + "," + _pattern
-
-	//log.Println(key)
-
-	/*if c.RequestMapping[key] != nil {
-		glog.Trace(key, "已经存在，将被替换成新的方法")
-	}*/
-	c.addRequestMapping(key, &_function)
-	//c.RequestMapping[key] = &_function
-	//fmt.Println(c.RequestMapping)
-}
-
-//func (c *BaseController) AddHandler(pattern string, function *Function) {
-//	c.Lock()
-//	defer c.Unlock()
-//	if c.RequestMapping == nil {
-//		c.RequestMapping = make(map[string]*Function)
-//	}
-//	_pattern := c.Root +"/"+ pattern
-//	c.RequestMapping[delRepeatAll(_pattern, "/", "/")] = function
-//}
-func (c *BaseController) pathParams(Method, Path string) (*function, map[string]string) {
-
-	var f *function
-	var p map[string]string
-
-	if c.RequestMapping.GetByKey("ALL,"+Path) != nil {
-
-		//fmt.Println(path,path)
-		return c.RequestMapping.GetByKey("ALL," + Path).F, map[string]string{}
-
-	} else if c.RequestMapping.GetByKey(Method+","+Path) != nil {
-		return c.RequestMapping.GetByKey(Method + "," + Path).F, map[string]string{}
-
-	} else {
-		//地址包括参数的方法
-
-		c.RequestMapping.Range(func(index int, e *Mapping) bool {
-
-			keys := strings.Split(e.Key, ",") //[Method,Path]
-			if su, params := getPathParams(string(keys[1]), Path); su {
-				if strings.EqualFold(keys[0], "ALL") {
-					p = params
-					f = e.F
-					return false
-				} else if strings.EqualFold(string(keys[0]), Method) {
-					p = params
-					f = e.F
-					return false
-				}
-
-			}
-
-			return true
-		})
-
-		//是否有对应的路由
-		/*if f == nil {
-			f = c.RequestMapping["ALL,"+c.Root+"*"]
-			if f == nil {
-				f = c.RequestMapping["ALL,"+c.Root]
-			}
-		}*/
-	}
-
-	return f, p
-}
-func (c *BaseController) doAction(context *Context, f *function) Result {
-	//path := strings.TrimRight(context.Request.URL.Path, "/")
-	//path := context.Request.URL.Path
-	//rowUrl := context.Request.URL.String()
-	glog.Debug(context.Request.Method, context.Request.URL)
-
-	//var f *function
-	var result Result
-
-	//Method := context.Request.Method
-	//f,context.PathParams = c.pathParams(Method,path)
-
-	if f == nil {
-		result = &ViewActionMappingResult{}
-	} else {
-		result = f.Function(context)
-		if result == nil {
-			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
-		}
-	}
-
-	return result
-}
-func ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	glog.Debug(r.Method, r.URL)
-
-	path, _ := filepath.Split(r.URL.Path)
-
-	pathList := strings.Split(strings.Trim(path, "/"), "/")
-
-	RootPathList := make([]string, 0)
-
-	var lastItem = controllerMap
-	for index := range pathList {
-
-		if value, ok := lastItem[pathList[index]]; ok {
-
-			lastItem = value.(map[string]interface{})
-			RootPathList = append(RootPathList, pathList[index])
-		} else {
-
-			for k, _ := range lastItem {
-
-				re, err := regexp.Compile("\\{(.*?)+\\}")
-				glog.Error(err)
-				if re.MatchString(k) {
-
-					lastItem = lastItem[k].(map[string]interface{})
-					RootPathList = append(RootPathList, pathList[index])
-				}
-			}
-
-		}
-
-	}
-
-	controller, ok := lastItem[""].(IController)
-	if ok == false {
-		controller, ok = lastItem[""].(map[string]interface{})[""].(IController)
-		if ok == false {
-			controller = &BaseController{}
-		}
-	}
-	controller.ServeHTTP(w, r, "/"+strings.Join(RootPathList, "/")+"/")
-
-}
-func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootPath string) {
-
+func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var startTime = time.Now().UnixNano()
 	defer func() {
 		if r := recover(); r != nil {
 			glog.Trace(r)
 			debug.PrintStack()
-
 		}
+		//context.Request.Method, context.Request.URL
+		glog.Debug(fmt.Sprintf("%10v\t%10v\t%10v", r.Method, fmt.Sprintf("%vms", float64(time.Now().UnixNano()-startTime)/float64(time.Millisecond)), r.URL))
 	}()
 
 	var session *Session
@@ -560,8 +144,8 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootP
 	var GLSESSIONID string
 	if err != nil || strings.EqualFold(cookie.Value, "") {
 
-		GLSESSIONID = tool.UUID()
-		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: int(30 * time.Minute)})
+		GLSESSIONID = encryption.CipherEncrypter(encryption.NewSecretKey(conf.Config.SecureKey), fmt.Sprintf("%s", time.Now().Format("2006-01-02 15:04:05")))
+		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: conf.Config.SessionExpires})
 		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
 		Sessions.AddSession(GLSESSIONID, session)
 
@@ -582,189 +166,353 @@ func (c *BaseController) ServeHTTP(w http.ResponseWriter, r *http.Request, rootP
 	w.Header().Add("Server-Ver", conf.Config.Ver)
 	//c.Unlock()
 
-	jsonData := make(map[string]interface{})
-	tool.JsonUnmarshal([]byte(conf.JsonText), &jsonData)
-	var context = &Context{Response: w, Request: r, Session: session, Data: jsonData}
-	context.RootPath = rootPath
+	pathParams := mux.Vars(r)
+	var context = &Context{Response: w, Request: r, Session: session, PathParams: pathParams, Function: function}
 
-	Method := context.Request.Method
+	//context.RootPath=
 
-	var f *function
-	f, context.PathParams = c.pathParams(Method, context.Request.URL.Path)
+	if function.controller != nil {
 
-	if c.Interceptors.Len() > 0 {
-		bo, executeResult := c.Interceptors.ExecuteAll(c, context)
-		if bo == false {
-			if executeResult != nil {
-				executeResult.Apply(context)
+		if function.controller.Router == nil {
+			context.RoutePath = function.controller.RoutePath
+		} else {
+			//todo:这个地方修改没有测试，原逻辑会导致路由被修改而异常
+			context.RoutePath = function.controller.RoutePath
+
+			varsRegexp := regexp.MustCompile("\\{(.*?)+\\}")
+			if varsRegexp.MatchString(context.RoutePath) {
+				context.RoutePath = varsRegexp.ReplaceAllStringFunc(context.RoutePath, func(s string) string {
+					ss := s[1 : len(s)-1]
+					return pathParams[ss]
+				})
 			}
-			return
-		}
-	}
-
-	//f 如果为空，表明没有对应的action，则直接动态渲染
-	if f != nil && conf.Config.Debug == false {
-
-		var fullPath = context.Request.URL.Path
-		if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
-			fullPath = fullPath + "?" + context.Request.URL.RawQuery
 		}
 
-		fullPathMd5 := encryption.Md5ByString(fullPath)
-
-		if tool.IsFileExist("cache/" + fullPathMd5) {
-			b, err := ioutil.ReadFile("cache/" + fullPathMd5)
-			if glog.Error(err) == false {
-				context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-				context.Response.Write(b)
+		interceptor := function.controller.Interceptors
+		if interceptor == nil {
+			function.controller.doAction(context, function).Apply(context)
+		} else {
+			isContinue, beforeResult := interceptor.ActionBefore(context)
+			if isContinue == false {
+				if beforeResult != nil {
+					beforeResult.Apply(context)
+				}
 				return
 			}
-		}
 
-	}
+			serviceConfig := interceptor.ActionService(context)
 
-	result := c.doAction(context, f)
-	result.Apply(context)
-}
+			if serviceConfig.CacheConfig.EnableHTMLCache {
 
-func delRepeatAll(src string, new string) string {
-	reg := regexp.MustCompile("(\\/)+")
-	return reg.ReplaceAllString(src, new)
-}
-func validateRoutePath(RoutePath string) bool {
-	re, err := regexp.Compile("^[0-9a-zA-Z_\\/\\{\\}\\.]+$")
-	glog.Error(err)
+				var fullPath = context.Request.URL.Path
+				if strings.EqualFold(context.Request.URL.RawQuery, "") == false {
+					fullPath = fullPath + "?" + context.Request.URL.RawQuery
+				}
+				fullPathMd5 := encryption.Md5ByString(fullPath)
+				cacheItem, err := cache.Read(fmt.Sprintf("cache/%v/%v", serviceConfig.CacheConfig.PrefixName, fullPathMd5))
+				if err == nil {
+					context.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+					context.Response.Write(cacheItem.Byte)
+					return
 
-	if re.MatchString(RoutePath) == false && strings.EqualFold(RoutePath, "") == false {
-		//panic("路径:" + RoutePath + ":不允许含有0-9a-zA-Z/{}之外的字符")
-		panic(errors.New("路径:" + RoutePath + ":不允许含有0-9a-zA-Z/{}之外的字符"))
-		return false
-	}
-	routePaths := strings.Split(RoutePath, "/")
-
-	rea, err := regexp.Compile("\\{[0-9a-zA-Z_]+\\}")
-	glog.Error(err)
-	reb, err := regexp.Compile("^\\{[0-9a-zA-Z_]+\\}$")
-	glog.Error(err)
-
-	for index := range routePaths {
-
-		if strings.Count(routePaths[index], "{") != strings.Count(routePaths[index], "}") {
-			//panic("路径:" + RoutePath + ":{或}个数不匹配")
-			panic(errors.New("路径:" + RoutePath + ":{或}个数不匹配"))
-			return false
-		}
-
-		if rea.MatchString(routePaths[index]) {
-			if reb.MatchString(routePaths[index]) {
-				continue
-			} else {
-				//panic("路径:" + RoutePath + "中" + routePaths[index] + "，只有一个{paramName}参数形式")
-				panic(errors.New("路径:" + RoutePath + "中" + routePaths[index] + "，只有一个{paramName}参数形式"))
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-/*
-RoutePath 定义的路由
-Path 用户路由
-*/
-func getPathParams(RoutePath string, Path string) (bool, map[string]string) {
-	result := make(map[string]string)
-	_RoutePath := delRepeatAll(RoutePath, "/")
-	_Path := delRepeatAll(Path, "/")
-
-	mRoutePaths := strings.Split(_RoutePath, "/")
-	mPaths := strings.Split(_Path, "/")
-
-	tr := RoutePath[len(RoutePath)-1:]
-	isDirPath := strings.EqualFold(tr, "/")
-
-	//两个目录级别要一样。
-	if len(mRoutePaths) != len(mPaths) && isDirPath == false {
-		return false, result
-	}
-	if len(mRoutePaths) > len(mPaths) {
-		return false, result
-	}
-
-	re, err := regexp.Compile("\\{(.*?)+\\}")
-	glog.Error(err)
-
-	for index := range mRoutePaths {
-
-		haveParams := re.MatchString(mRoutePaths[index])
-		if haveParams {
-			//有参数
-
-			//获取地址参数
-			Submatchs := re.FindAllStringSubmatch(mRoutePaths[index], -1)
-			dfd := re.Split(mRoutePaths[index], -1) //不是参数的文本
-			//fmt.Println("--------",mRoutePaths[index],dfd,Submatchs)
-
-			subPath := mPaths[index]
-			//var ars []string
-
-			//顺45435435dsf吴dsf43543543dfsgdfs清sdfdsfds
-			var kindex = 0
-			var pIndex = 0
-			for subIndex := range dfd {
-				kindex = strings.Index(subPath, string(dfd[subIndex]))
-
-				value := string(subPath[0:kindex])
-				//fmt.Println("keywork",value)
-				if !strings.EqualFold(value, "") {
-					item := Submatchs[pIndex]
-					result[item[1]] = value
-					pIndex++
 				}
 
-				subPath = string(subPath[kindex+len(dfd[subIndex]):])
-				//fmt.Println("++++++++++",string(dfd[subIndex]))
-				//fmt.Println("//////////",subPath)
-
 			}
 
-			if len(subPath)-1 >= kindex {
-				value := string(subPath[kindex:])
-				//fmt.Println("keywork",value)
-				if !strings.EqualFold(value, "") {
-					item := Submatchs[pIndex]
-					result[item[1]] = value
-					pIndex++
-				}
+			result := function.controller.doAction(context, function)
+
+			interceptorResult := interceptor.ActionAfter(context, result)
+			if interceptorResult == nil {
+				interceptorResult = result
 			}
 
-		} else {
-			//没有参数
-			if !strings.EqualFold(mRoutePaths[index], mPaths[index]) {
-				if isDirPath {
-					if len(mRoutePaths) == index+1 {
-						return true, result
+			if serviceConfig.CacheConfig.EnableHTMLCache {
+
+				if htmlResult, ok := interceptorResult.(*HTMLResult); ok {
+
+					interceptorResult = &cacheHTMLResult{
+						HTMLResult:  htmlResult,
+						ServiceName: serviceConfig.CacheConfig.PrefixName,
 					}
-
 				}
 
-				//return true, pathData
-				return false, result
 			}
+
+			interceptorResult.Apply(context)
 		}
+
+	} else {
+		(&Controller{}).doAction(context, function).Apply(context)
+		panic(errors.New("function 无法获取 controller"))
 	}
-
-	//fmt.Println(result)
-
-	return true, result
 
 }
 
-func fixPath(path string) string {
-	_path := delRepeatAll(path, "/")
-	/*if strings.EqualFold(string(_path[0]),"/"){
-		_path =string(_path[1:])
-	}*/
-	return _path
+func NewFunction(RoutePath string, call IHandler) *Function {
+	function := &Function{}
+	function.RoutePath = RoutePath
+	function.Handler = call
+	return function
+}
+
+var AppRouter = mux.NewRouter()
+
+var _ IController = &Controller{}
+
+type Controller struct {
+	RoutePath        string        //定义路由的路径
+	Interceptors     *Interceptors //
+	ParentController *Controller   //
+	Router           *mux.Router   //dir
+	ViewSubDir       string        //
+}
+
+func (c *Controller) AddInterceptor(value Interceptor) IController {
+	c.Interceptors.AddInterceptor(value)
+	return c
+}
+
+func (c *Controller) DefaultHandle(call IHandler) IController {
+	c.Router.NotFoundHandler = &NotFoundHandler{function: &Function{
+		Handler:    call,
+		controller: c,
+	}}
+	return c
+}
+
+func (c *Controller) NotFoundHandler(call IHandler) IController {
+	c.Router.NotFoundHandler = &NotFoundHandler{function: &Function{
+		Handler:    call,
+		controller: c,
+	}}
+	return c
+}
+func (c *Controller) NewController(actionName string) IController {
+	path := fmt.Sprintf("/%s/", strings.Trim(actionName, "/"))
+
+	h := c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
+		//c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+		/*function := &Function{
+			RoutePath:  "*",
+			Handler:    &handler{call: controller.DefaultHandle},
+			controller: c.Addr().Interface().(*Controller),
+		}
+
+		function.ServeHTTP(writer, request)*/
+	})
+	glog.Panic(h.GetError())
+
+	route := c.Router.PathPrefix(path)
+	glog.Panic(route.GetError())
+	router := route.Subrouter()
+
+	controller := &Controller{
+		RoutePath:        path,
+		Interceptors:     &Interceptors{},
+		ParentController: c,
+		Router:           router,
+		ViewSubDir:       c.ViewSubDir,
+	}
+	return controller
+
+	/*v := reflect.ValueOf(controller)
+
+	RoutePathValue := v.Elem().FieldByName("RoutePath")
+	RoutePathValue.SetString(c.RoutePath + strings.Trim(path, "/") + "/")
+
+	RouteValue := v.Elem().FieldByName("Router")
+	RouteValue.Set(reflect.ValueOf(router))
+
+	ParentControllerValue := v.Elem().FieldByName("ParentController")
+	ParentControllerValue.Set(reflect.ValueOf(c))
+
+	ViewSubDirValue := v.Elem().FieldByName("ViewSubDir")
+	ViewSubDirValue.Set(reflect.ValueOf(c.ViewSubDir))
+	return controller*/
+}
+
+func (c *Controller) AddHandler(routePath string, call IHandler) IController {
+	function := NewFunction(routePath, call)
+	if strings.EqualFold(function.RoutePath, "") {
+		panic(errors.New("不允许有空的路由"))
+		return c
+	}
+	function.controller = c
+
+	var methods []string
+	if _, ok := call.(IHandlerGet); ok {
+		methods = append(methods, http.MethodGet)
+	}
+	if _, ok := call.(IHandlerPost); ok {
+		methods = append(methods, http.MethodPost)
+	}
+	if _, ok := call.(IHandlerHead); ok {
+		methods = append(methods, http.MethodHead)
+	}
+	if _, ok := call.(IHandlerPut); ok {
+		methods = append(methods, http.MethodPut)
+	}
+	if _, ok := call.(IHandlerPatch); ok {
+		methods = append(methods, http.MethodPatch)
+	}
+	if _, ok := call.(IHandlerDelete); ok {
+		methods = append(methods, http.MethodDelete)
+	}
+	if _, ok := call.(IHandlerConnect); ok {
+		methods = append(methods, http.MethodConnect)
+	}
+	if _, ok := call.(IHandlerOptions); ok {
+		methods = append(methods, http.MethodOptions)
+	}
+	if _, ok := call.(IHandlerTrace); ok {
+		methods = append(methods, http.MethodTrace)
+	}
+	if len(methods) == 0 {
+		methods = append(methods,
+			http.MethodGet,
+			http.MethodHead,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodConnect,
+			http.MethodOptions,
+			http.MethodTrace,
+		)
+	}
+
+	h := c.Router.Handle("/"+strings.Trim(function.RoutePath, "/"), function).Methods(methods...)
+	glog.Panic(h.GetError())
+	return c
+}
+
+func (c *Controller) AddStaticHandler(function *Function) {
+	if strings.EqualFold(function.RoutePath, "") {
+		panic(errors.New("不允许有空的路由"))
+		return
+	}
+	function.controller = c
+
+	p := c.Router.PathPrefix("/" + strings.Trim(function.RoutePath, "/") + "/")
+	glog.Panic(p.GetError())
+	h := p.Handler(function)
+	glog.Panic(h.GetError())
+	h.Methods(http.MethodGet)
+}
+
+func (c *Controller) doAction(context *Context, f *Function) Result {
+	var result Result
+	if f == nil {
+		result = &ViewActionMappingResult{}
+	} else {
+
+		switch context.Request.Method {
+		case http.MethodGet:
+			if handler, ok := f.Handler.(IHandlerGet); ok {
+				result = handler.HandleGet(context)
+			}
+		case http.MethodHead:
+			if handler, ok := f.Handler.(IHandlerHead); ok {
+				result = handler.HandleHead(context)
+			}
+		case http.MethodPost:
+			if handler, ok := f.Handler.(IHandlerPost); ok {
+				result = handler.HandlePost(context)
+			}
+		case http.MethodPut:
+			if handler, ok := f.Handler.(IHandlerPut); ok {
+				result = handler.HandlePut(context)
+			}
+		case http.MethodPatch:
+			if handler, ok := f.Handler.(IHandlerPatch); ok {
+				result = handler.HandlePatch(context)
+			}
+		case http.MethodDelete:
+			if handler, ok := f.Handler.(IHandlerDelete); ok {
+				result = handler.HandleDelete(context)
+			}
+		case http.MethodConnect:
+			if handler, ok := f.Handler.(IHandlerConnect); ok {
+				result = handler.HandleConnect(context)
+			}
+		case http.MethodOptions:
+			if handler, ok := f.Handler.(IHandlerOptions); ok {
+				result = handler.HandleOptions(context)
+			}
+		case http.MethodTrace:
+			if handler, ok := f.Handler.(IHandlerTrace); ok {
+				result = handler.HandleTrace(context)
+			}
+		default:
+			result = f.Handler.Handle(context)
+		}
+
+		if result == nil {
+			result = f.Handler.Handle(context)
+		}
+
+		if result == nil {
+
+			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
+		}
+	}
+
+	return result
+}
+
+// NewController 根目录控制器，非具体的handler
+func NewController(rootPath, viewSubDir string) IController {
+	var path string
+
+	trimPath := strings.Trim(rootPath, "/")
+	if strings.EqualFold(trimPath, "") {
+		path = "/"
+	} else {
+		path = fmt.Sprintf("/%s/", trimPath)
+	}
+
+	route := AppRouter.PathPrefix(path)
+	glog.Panic(route.GetError())
+	router := route.Subrouter()
+	controller := &Controller{
+		RoutePath:        path,
+		Interceptors:     &Interceptors{},
+		ParentController: nil,
+		Router:           router,
+		ViewSubDir:       strings.Trim(viewSubDir, "/"),
+	}
+	return controller
+}
+func NewStaticController(rootPath, dir string) {
+	AppRouter.PathPrefix(fmt.Sprintf("/%s/", rootPath)).HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Access-Control-Allow-Origin", "*")
+		http.StripPrefix(fmt.Sprintf("/%s/", rootPath), http.FileServer(http.Dir(dir))).ServeHTTP(writer, request)
+	}) //.Handler(http.StripPrefix(fmt.Sprintf("/%s/",rootPath), http.FileServer(http.Dir(dir))))
+	/*path := "/" + strings.Trim(actionName, "/") + "/"
+	if strings.EqualFold(actionName, "/") || strings.EqualFold(actionName, "") {
+		path = "/"
+	} else {
+		path = "/" + strings.Trim(actionName, "/") + "/"
+	}
+	route := AppRouter.PathPrefix(path)
+	glog.Panic(route.GetError())
+	h := route.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+
+		c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+		cAddr := c.Addr()
+
+		function := &Function{
+			RoutePath:  "*",
+			Handler:    &handler{call: controller.DefaultHandle},
+			controller: cAddr.Interface().(*Controller),
+		}
+
+		function.ServeHTTP(writer, request)
+	})
+	glog.Panic(h.GetError())
+
+	v := reflect.ValueOf(controller)
+	RoutePathValue := v.Elem().FieldByName("RoutePath")
+	RoutePathValue.SetString(path)*/
+	return
 }
