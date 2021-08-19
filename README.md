@@ -143,8 +143,6 @@ func main() {
 	account := &AccountController{}
 	account.NewController("/account", account)
 
-
-
 	httpServer := &http.Server{
 		Addr:         conf.Config.HttpPort,
 		Handler:      http.DefaultServeMux,
@@ -159,18 +157,11 @@ func main() {
 	//也可用，内置函数,gweb只是简单的做一个封装的
 	//err := http.ListenAndServe(conf.Config.HttpPort, nil)
 	//log.Println(err)
-
 }
-
-
-
-
-
-
-
-
-
 ```
 具体代码请查看demo目录：https://github.com/nbvghost/gweb/tree/master/demo/gwebtest
 
 也可以加我QQ：274455411
+
+### 推荐使用jetbrains goland开发
+<a href="https://www.jetbrains.com/?from=gweb"><img src="https://raw.githubusercontent.com/nbvghost/gweb/master/icon-goland.png" alt="使用IDEA开发" width="128" height="128" align="bottom" /></a>
