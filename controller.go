@@ -23,10 +23,10 @@ func fixPath(path string) string {
 }
 
 type handler struct {
-	call func(context *Context) Result
+	call func(context *Context) (Result, error)
 }
 
-func (h *handler) Handle(context *Context) Result {
+func (h *handler) Handle(context *Context) (Result, error) {
 	return h.call(context)
 }
 
@@ -72,42 +72,42 @@ MethodTrace   = "TRACE"
 
 type IHandlerGet interface {
 	IHandler
-	HandleGet(context *Context) Result
+	HandleGet(context *Context) (Result, error)
 }
 type IHandlerPost interface {
 	IHandler
-	HandlePost(context *Context) Result
+	HandlePost(context *Context) (Result, error)
 }
 type IHandlerHead interface {
 	IHandler
-	HandleHead(context *Context) Result
+	HandleHead(context *Context) (Result, error)
 }
 type IHandlerPut interface {
 	IHandler
-	HandlePut(context *Context) Result
+	HandlePut(context *Context) (Result, error)
 }
 type IHandlerPatch interface {
 	IHandler
-	HandlePatch(context *Context) Result
+	HandlePatch(context *Context) (Result, error)
 }
 type IHandlerDelete interface {
 	IHandler
-	HandleDelete(context *Context) Result
+	HandleDelete(context *Context) (Result, error)
 }
 type IHandlerConnect interface {
 	IHandler
-	HandleConnect(context *Context) Result
+	HandleConnect(context *Context) (Result, error)
 }
 type IHandlerOptions interface {
 	IHandler
-	HandleOptions(context *Context) Result
+	HandleOptions(context *Context) (Result, error)
 }
 type IHandlerTrace interface {
 	IHandler
-	HandleTrace(context *Context) Result
+	HandleTrace(context *Context) (Result, error)
 }
 type IHandler interface {
-	Handle(context *Context) Result
+	Handle(context *Context) (Result, error)
 }
 
 type NotFoundHandler struct {
@@ -190,7 +190,11 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		interceptor := function.controller.Interceptors
 		if interceptor == nil {
-			function.controller.doAction(context, function).Apply(context)
+			result, err := function.controller.doAction(context, function)
+			if err != nil {
+				result = NewErrorResult(err)
+			}
+			result.Apply(context)
 		} else {
 			isContinue, beforeResult := interceptor.ActionBefore(context)
 			if isContinue == false {
@@ -219,7 +223,12 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-			result := function.controller.doAction(context, function)
+			result, err := function.controller.doAction(context, function)
+			if err != nil {
+				result = NewErrorResult(err)
+				result.Apply(context)
+				return
+			}
 
 			interceptorResult := interceptor.ActionAfter(context, result)
 			if interceptorResult == nil {
@@ -242,8 +251,11 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-		(&Controller{}).doAction(context, function).Apply(context)
-		panic(errors.New("function 无法获取 controller"))
+		result, err := (&Controller{}).doAction(context, function)
+		if err != nil {
+			result = NewErrorResult(err)
+		}
+		result.Apply(context)
 	}
 
 }
@@ -268,6 +280,7 @@ type Controller struct {
 }
 
 func (c *Controller) AddInterceptor(value Interceptor) IController {
+
 	c.Interceptors.AddInterceptor(value)
 	return c
 }
@@ -290,17 +303,17 @@ func (c *Controller) NotFoundHandler(call IHandler) IController {
 func (c *Controller) NewController(actionName string) IController {
 	path := fmt.Sprintf("/%s/", strings.Trim(actionName, "/"))
 
-	h := c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
-		//c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
-		/*function := &Function{
-			RoutePath:  "*",
-			Handler:    &handler{call: controller.DefaultHandle},
-			controller: c.Addr().Interface().(*Controller),
-		}
+	/*	h := c.Router.HandleFunc("/"+strings.Trim(actionName, "/"), func(writer http.ResponseWriter, request *http.Request) {
+			//c := reflect.ValueOf(controller).Elem().FieldByName("Controller")
+			function := &Function{
+				RoutePath:  "*",
+				Handler:    &handler{call: controller.DefaultHandle},
+				controller: c.Addr().Interface().(*Controller),
+			}
 
-		function.ServeHTTP(writer, request)*/
-	})
-	glog.Panic(h.GetError())
+			function.ServeHTTP(writer, request)
+		})
+		glog.Panic(h.GetError())*/
 
 	route := c.Router.PathPrefix(path)
 	glog.Panic(route.GetError())
@@ -400,8 +413,9 @@ func (c *Controller) AddStaticHandler(function *Function) {
 	h.Methods(http.MethodGet)
 }
 
-func (c *Controller) doAction(context *Context, f *Function) Result {
+func (c *Controller) doAction(context *Context, f *Function) (Result, error) {
 	var result Result
+	var err error
 	if f == nil {
 		result = &ViewActionMappingResult{}
 	} else {
@@ -409,46 +423,46 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 		switch context.Request.Method {
 		case http.MethodGet:
 			if handler, ok := f.Handler.(IHandlerGet); ok {
-				result = handler.HandleGet(context)
+				result, err = handler.HandleGet(context)
 			}
 		case http.MethodHead:
 			if handler, ok := f.Handler.(IHandlerHead); ok {
-				result = handler.HandleHead(context)
+				result, err = handler.HandleHead(context)
 			}
 		case http.MethodPost:
 			if handler, ok := f.Handler.(IHandlerPost); ok {
-				result = handler.HandlePost(context)
+				result, err = handler.HandlePost(context)
 			}
 		case http.MethodPut:
 			if handler, ok := f.Handler.(IHandlerPut); ok {
-				result = handler.HandlePut(context)
+				result, err = handler.HandlePut(context)
 			}
 		case http.MethodPatch:
 			if handler, ok := f.Handler.(IHandlerPatch); ok {
-				result = handler.HandlePatch(context)
+				result, err = handler.HandlePatch(context)
 			}
 		case http.MethodDelete:
 			if handler, ok := f.Handler.(IHandlerDelete); ok {
-				result = handler.HandleDelete(context)
+				result, err = handler.HandleDelete(context)
 			}
 		case http.MethodConnect:
 			if handler, ok := f.Handler.(IHandlerConnect); ok {
-				result = handler.HandleConnect(context)
+				result, err = handler.HandleConnect(context)
 			}
 		case http.MethodOptions:
 			if handler, ok := f.Handler.(IHandlerOptions); ok {
-				result = handler.HandleOptions(context)
+				result, err = handler.HandleOptions(context)
 			}
 		case http.MethodTrace:
 			if handler, ok := f.Handler.(IHandlerTrace); ok {
-				result = handler.HandleTrace(context)
+				result, err = handler.HandleTrace(context)
 			}
 		default:
-			result = f.Handler.Handle(context)
+			result, err = f.Handler.Handle(context)
 		}
 
 		if result == nil {
-			result = f.Handler.Handle(context)
+			result, err = f.Handler.Handle(context)
 		}
 
 		if result == nil {
@@ -457,7 +471,7 @@ func (c *Controller) doAction(context *Context, f *Function) Result {
 		}
 	}
 
-	return result
+	return result, err
 }
 
 // NewController 根目录控制器，非具体的handler

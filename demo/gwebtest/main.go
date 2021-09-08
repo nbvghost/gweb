@@ -27,6 +27,7 @@ func (this InterceptorManager) Execute(context *gweb.Context) (bool, gweb.Result
 		return true, nil
 	}
 }
+
 type InterceptorManagers struct {
 }
 
@@ -45,6 +46,7 @@ func (this InterceptorManagers) Execute(context *gweb.Context) (bool, gweb.Resul
 		return true, nil
 	}
 }
+
 type User struct {
 	Name string
 	Age  int
@@ -56,13 +58,12 @@ type IndexController struct {
 }
 
 func (c *IndexController) Apply() {
-	c.Interceptors.Add(&InterceptorManager{}) //拦截器
+	c.Interceptors.Add(&InterceptorManager{})  //拦截器
 	c.Interceptors.Add(&InterceptorManagers{}) //拦截器
-
 
 	// 添加index地址映射
 	//访问路径示例：http://127.0.0.1:80/index
-	c.AddHandler(gweb.ALLMethod("index", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.ALLMethod("index", func(context *gweb.Context) (gweb.Result, error) {
 		return &gweb.HTMLResult{}
 	}))
 
@@ -81,7 +82,7 @@ type AccountController struct {
 func (c *AccountController) Apply() {
 
 	//访问路径示例：http://127.0.0.1:80/account/login
-	c.AddHandler(gweb.GETMethod("login", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GETMethod("login", func(context *gweb.Context) (gweb.Result, error) {
 
 		user := &User{Name: "user name", Age: 12}
 
@@ -102,14 +103,14 @@ type WxController struct {
 func (c *WxController) Apply() {
 
 	//访问路径示例：http://127.0.0.1:80/wx/44545/path
-	c.AddHandler(gweb.GETMethod("{id}/path", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GETMethod("{id}/path", func(context *gweb.Context) (gweb.Result, error) {
 
 		user := context.Session.Attributes.Get("admin").(*User)
 
 		return &gweb.HTMLResult{Name: "wx/path", Params: map[string]interface{}{"User": user, "Id": context.PathParams}}
 	}))
 	//访问路径示例：http://127.0.0.1:80/wx/info
-	c.AddHandler(gweb.GETMethod("info", func(context *gweb.Context) gweb.Result {
+	c.AddHandler(gweb.GETMethod("info", func(context *gweb.Context) (gweb.Result, error) {
 
 		user := context.Session.Attributes.Get("admin").(*User)
 
@@ -127,8 +128,6 @@ func main() {
 	account := &AccountController{}
 	account.NewController("/account", account)
 
-
-
 	httpServer := &http.Server{
 		Addr:         conf.Config.HttpPort,
 		Handler:      http.DefaultServeMux,
@@ -138,7 +137,7 @@ func main() {
 	}
 
 	//启动web服务器
-	gweb.StartServer(http.DefaultServeMux,httpServer, nil)
+	gweb.StartServer(http.DefaultServeMux, httpServer, nil)
 
 	//也可用，内置函数,gweb只是简单的做一个封装的
 	//err := http.ListenAndServe(conf.Config.HttpPort, nil)

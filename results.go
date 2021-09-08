@@ -50,7 +50,6 @@ var _ Result = (*ImageBytesResult)(nil)
 type Result interface {
 	Apply(context *Context)
 }
-
 type ErrorResult struct {
 	Error error
 }
@@ -528,7 +527,7 @@ func (r *cacheHTMLResult) Apply(context *Context) {
 var emptyTextRegexp = regexp.MustCompile(`\s{2,}`)
 var wrapTextRegexp = regexp.MustCompile(`[\r\n]`)
 
-//只映射已经定义的后缀模板文件
+// HTMLResult 只映射已经定义的后缀模板文件
 type HTMLResult struct {
 	Name       string
 	StatusCode int
@@ -621,6 +620,7 @@ func createPageParams(context *Context, Params map[string]interface{}) map[strin
 }
 
 type JsonResult struct {
+	error
 	Data interface{}
 	///sync.RWMutex
 }
