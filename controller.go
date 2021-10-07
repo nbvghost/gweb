@@ -3,11 +3,13 @@ package gweb
 import (
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/gorilla/mux"
 	"github.com/nbvghost/glog"
 	"github.com/nbvghost/gweb/cache"
 	"github.com/nbvghost/gweb/conf"
 	"github.com/nbvghost/tool/encryption"
+	"reflect"
 	"runtime/debug"
 	"time"
 
@@ -420,6 +422,39 @@ func (c *Controller) doAction(context *Context, f *Function) (Result, error) {
 		result = &ViewActionMappingResult{}
 	} else {
 
+		ht := reflect.TypeOf(f.Handler).Elem()
+		numField := ht.NumField()
+		var paramFieldName string
+
+		if v, ok := ht.FieldByName(context.Request.Method); ok {
+			paramFieldName = v.Name
+		} else {
+			for i := 0; i < numField; i++ {
+				if v, ok := ht.Field(i).Tag.Lookup("param"); ok {
+					if strings.EqualFold(context.Request.Method, v) {
+						paramFieldName = ht.Field(i).Name
+						break
+					}
+				}
+			}
+		}
+
+		if len(paramFieldName) > 0 {
+			paramV := reflect.ValueOf(f.Handler).Elem().FieldByName(paramFieldName)
+			if paramV.Kind() != reflect.Ptr {
+				paramV = paramV.Addr()
+			}
+			if len(context.Request.URL.Query()) > 0 {
+				if err = binding.Query.Bind(context.Request, paramV.Interface()); err != nil {
+					return nil, err
+				}
+			}
+			b := binding.Default(context.Request.Method, context.Request.Header.Get("Content-Type"))
+			if err = b.Bind(context.Request, paramV.Interface()); err != nil {
+				return nil, err
+			}
+		}
+
 		switch context.Request.Method {
 		case http.MethodGet:
 			if handler, ok := f.Handler.(IHandlerGet); ok {
@@ -464,9 +499,7 @@ func (c *Controller) doAction(context *Context, f *Function) (Result, error) {
 		if result == nil {
 			result, err = f.Handler.Handle(context)
 		}
-
 		if result == nil {
-
 			glog.Error(errors.New("Action:" + context.Request.URL.String() + "-> 返回视图类型为空"))
 		}
 	}
