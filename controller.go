@@ -148,14 +148,14 @@ func (function *Function) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		GLSESSIONID = encryption.CipherEncrypter(encryption.NewSecretKey(conf.Config.SecureKey), fmt.Sprintf("%s", time.Now().Format("2006-01-02 15:04:05")))
 		http.SetCookie(w, &http.Cookie{Name: "GLSESSIONID", Value: GLSESSIONID, Path: "/", MaxAge: conf.Config.SessionExpires})
-		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), GLSESSIONID: GLSESSIONID}
+		session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), Token: GLSESSIONID}
 		Sessions.AddSession(GLSESSIONID, session)
 
 	} else {
 
 		session = Sessions.GetSession(cookie.Value)
 		if session == nil {
-			session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), GLSESSIONID: cookie.Value}
+			session = &Session{Attributes: &Attributes{}, CreateTime: time.Now().Unix(), LastOperationTime: time.Now().Unix(), Token: cookie.Value}
 
 			Sessions.AddSession(cookie.Value, session)
 		}
