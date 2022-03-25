@@ -55,7 +55,7 @@ func TestRegisterRenderFunction(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			RegisterFunction("test", tt.args.funcName, &testFunc{})
+			RegisterFunction("test", &testFunc{})
 
 			r, _ := http.NewRequest("GET", "http://a.b.c/test/a/b/c/index", nil)
 			funcMap := NewFuncMap(&Context{RoutePath: "fdsfdsf", Request: r})
