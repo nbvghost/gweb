@@ -104,29 +104,24 @@ type IFunc interface {
 	return FunctionMap
 }*/
 
-var regMap = make(map[string]map[string]interface{})
+var regMap = make(map[string]interface{})
 
-func RegisterFunction(group string, funcName string, function IFunc) {
+func RegisterFunction(funcName string, function IFunc) {
 
-	if _, ok := regMap[group]; !ok {
-		regMap[group] = make(map[string]interface{})
-	}
-	if _, ok := regMap[group][funcName]; ok {
+	if _, ok := regMap[funcName]; ok {
 		log.Fatalln(errors.New(fmt.Sprintf("%v函数已经存在", funcName)))
 	}
 
-	regMap[group][funcName] = function
+	regMap[funcName] = function
 
 }
-func RegisterWidget(group string, funcName string, widget IWidget) {
-	if _, ok := regMap[group]; !ok {
-		regMap[group] = make(map[string]interface{})
-	}
-	if _, ok := regMap[group][funcName]; ok {
+func RegisterWidget(funcName string, widget IWidget) {
+
+	if _, ok := regMap[funcName]; ok {
 		log.Fatalln(errors.New(fmt.Sprintf("%v函数已经存在", funcName)))
 	}
 
-	regMap[group][funcName] = widget
+	regMap[funcName] = widget
 
 }
 
@@ -157,18 +152,11 @@ func NewFuncMap(context *Context) template.FuncMap {
 	fm.funcMap["DigitMod"] = fm.digitMod
 	fm.funcMap["Test"] = fm.test
 
-	groups := strings.Split(context.Request.URL.Path, "/")
-	if len(groups) < 3 {
-		return fm.funcMap
-	}
-
-	group := groups[1]
-
-	for funcName := range regMap[group] {
+	for funcName := range regMap {
 
 		func(funcName string) {
 			//闭包
-			function := regMap[group][funcName]
+			function := regMap[funcName]
 
 			v := reflect.ValueOf(function).Elem()
 			functionType := v.Type()
@@ -207,7 +195,7 @@ func NewFuncMap(context *Context) template.FuncMap {
 						log.Println(err)
 						return
 					}
-					fileName := filepath.Join(conf.Config.ViewDir, group, "template", "widget", fmt.Sprintf("%s.%s", funcName, "gohtml"))
+					fileName := filepath.Join(conf.Config.ViewDir, "template", "widget", fmt.Sprintf("%s.%s", funcName, "gohtml"))
 					b, err := ioutil.ReadFile(fileName)
 					if err != nil {
 						log.Println(err)

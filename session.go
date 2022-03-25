@@ -13,9 +13,10 @@ type SessionSafeMap struct {
 }
 type Session struct {
 	//sync.RWMutex
+	ID                string
+	Token             string
 	Attributes        *Attributes
 	CreateTime        int64
-	GLSESSIONID       string
 	LastOperationTime int64
 	LastRequestURL    *url.URL
 }
