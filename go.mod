@@ -5,8 +5,8 @@ go 1.17
 require (
 	github.com/gin-gonic/gin v1.7.7
 	github.com/gorilla/mux v1.8.0
-	github.com/nbvghost/glog v1.0.18
-	github.com/nbvghost/tool v0.0.0-20220325085357-8ba0b1890cf8
+	github.com/nbvghost/glog v0.0.0-20220325163842-3accd57fda66
+	github.com/nbvghost/tool v0.0.0-20220325180651-f5c6376d74d4
 )
 
 require (

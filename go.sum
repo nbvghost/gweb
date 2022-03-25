@@ -39,10 +39,10 @@ github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 h1:ZqeYNhU3OH
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 h1:Esafd1046DLDQ0W1YjYsBW+p8U2u7vzgW2SQVmlNazg=
 github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
-github.com/nbvghost/glog v1.0.18 h1:ZE0/GK6+jHsY+c3TQmOGWQb9iSEZ1FNfAUN6lCdXRac=
-github.com/nbvghost/glog v1.0.18/go.mod h1:MpQrW1hH71geowXb/iED845KLTgcqEXETwLmqZH7vVE=
-github.com/nbvghost/tool v0.0.0-20220325085357-8ba0b1890cf8 h1:16X1LbjvXuwQ4Zq5rASlzgt3INIjAGpfe6np45NNIKY=
-github.com/nbvghost/tool v0.0.0-20220325085357-8ba0b1890cf8/go.mod h1:F4pwVzRQtgXiYyIT4gH3WzP6Da6qcEMxptcrAkYl/r0=
+github.com/nbvghost/glog v0.0.0-20220325163842-3accd57fda66 h1:xRB+gdQcg/mVm8jHkkSQSmhilewjYJIHEM+bnEI7Y6Y=
+github.com/nbvghost/glog v0.0.0-20220325163842-3accd57fda66/go.mod h1:gdiXkZif1WPXZmDpvPX13wcfyzCYTtTNwak8Uf1wDbo=
+github.com/nbvghost/tool v0.0.0-20220325180651-f5c6376d74d4 h1:BTxI+LJxGoEytd8D5ofZn3UByakDCrHAg9DsE4VXNT8=
+github.com/nbvghost/tool v0.0.0-20220325180651-f5c6376d74d4/go.mod h1:xf0DSLb3ID0DX9Auq2aa80tO3J6ukPYM9w5YAIi2Y34=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
